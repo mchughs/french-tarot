@@ -1,0 +1,17 @@
+{:deps {org.clojure/clojure       {:mvn/version "1.10.1"}
+        org.clojure/clojurescript {:mvn/version "1.10.773"}
+        com.bhauman/figwheel-main {:mvn/version "0.2.12"}
+        com.taoensso/sente        {:mvn/version "1.6.0"}
+        metosin/reitit            {:mvn/version "0.5.11"}
+        reagent/reagent           {:mvn/version "1.0.0-rc1"}
+        mount/mount               {:mvn/version "0.1.16"}
+        metosin/malli             {:mvn/version "0.2.1"}
+        tolitius/mount-up         {:mvn/version "0.1.2"}
+        ring/ring                 {:mvn/version "1.8.2"}}
+ :paths ["src" "resources" "target" "dev"]
+ :aliases
+ {:test {:extra-paths ["test/clj" "test/data"]
+         :extra-deps {com.cognitect/test-runner
+                      {:git/url "https://github.com/cognitect-labs/test-runner.git"
+                       :sha "209b64504cb3bd3b99ecfec7937b358a879f55c1"}}
+         :main-opts ["-m" "cognitect.test-runner"]}}}
