@@ -36,7 +36,7 @@
    :hand #{}})
 
 (def confident-bid
-  {:type :garde-contre
+  {:type :bid/garde-contre
    :multiplier 6})
 
 (deftest validation-test

@@ -1,6 +1,6 @@
 (ns specs.player
   (:require [specs.cards :refer [Hand Pile]]
-            [specs.round :refer [Bid]]))
+            [specs.round :refer [Bid Bonuses]]))
 
 (def Player
   [:map [:id :uuid]
@@ -16,4 +16,5 @@
 (def Taker
   [:map [:bid Bid]
         [:player Player]
-        [:pile Pile]])
+        [:pile Pile]
+        [:bonuses Bonuses]])
