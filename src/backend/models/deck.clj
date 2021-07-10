@@ -1,7 +1,8 @@
 (ns backend.models.deck
-  (:require [clojure.edn :as edn]
-            [clojure.java.io :as io]
-            [utils :as utils]))
+  (:require
+   [clojure.edn :as edn]
+   [clojure.java.io :as io]
+   [utils :as utils]))
 
 (defonce virgin-deck (edn/read-string (slurp (io/resource "data/deck.edn"))))
 (defonce shuffled-deck (shuffle virgin-deck))
@@ -19,20 +20,20 @@
   [players dealer-id deck]
   (let [{dog-cards true
          player-cards false} (->> deck
-                               cut-deck
-                               (map-indexed (fn [idx card] [idx card]))
-                               (group-by (fn [[idx card]]
-                                           (contains? dog-card-locations idx)))
-                               (utils/fmap #(map last %)))
+                                  cut-deck
+                                  (map-indexed (fn [idx card] [idx card]))
+                                  (group-by (fn [[idx card]]
+                                              (contains? dog-card-locations idx)))
+                                  (utils/fmap #(map last %)))
         hands (->> player-cards
-                (partition 3)
-                (map-indexed (fn [idx batch] [idx batch]))
-                (group-by (fn [[idx batch]]
-                            (mod idx player-count)))
-                (utils/fmap #(->> %
-                               (map last)
-                               (apply concat)
-                               set)))
+                   (partition 3)
+                   (map-indexed (fn [idx batch] [idx batch]))
+                   (group-by (fn [[idx batch]]
+                               (mod idx player-count)))
+                   (utils/fmap #(->> %
+                                     (map last)
+                                     (apply concat)
+                                     set)))
         dealer-position (:position (utils/find-first #(= dealer-id (:id %)) players))
         deal-order [(mod (inc dealer-position) player-count)
                     (mod (+ 2 dealer-position) player-count)
@@ -40,7 +41,7 @@
                     dealer-position]]
     {:dog (set dog-cards)
      :players (map-indexed
-                (fn [idx order]
-                  (let [player (utils/find-first #(= order (:position %)) players)]
-                    (assoc player :hand (set (get hands idx)))))
-                deal-order)}))
+               (fn [idx order]
+                 (let [player (utils/find-first #(= order (:position %)) players)]
+                   (assoc player :hand (set (get hands idx)))))
+               deal-order)}))

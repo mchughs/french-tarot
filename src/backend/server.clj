@@ -1,32 +1,40 @@
 (ns backend.server
-  (:require [backend.routes.swagger          :as routes.swagger]
-            [muuntaja.core                   :as m]
-            [reitit.ring                     :as ring]
-            [reitit.ring.middleware.muuntaja :as muuntaja]
-            [reitit.swagger                  :as swagger]
-            [reitit.swagger-ui               :as swagger-ui]))
+  (:require
+   [backend.routes.ws :as routes.ws]
+   [compojure.core :as compojure :refer [GET]]
+   [compojure.route :as route]
+   [hiccup.page :as hiccup.page]
+   ;; Middlewares
+   ring.middleware.anti-forgery
+   ring.middleware.keyword-params
+   ring.middleware.params
+   ring.middleware.session))
 
-(defn wrap [handler id]
-  (fn [request]
-    (update (handler request) :wrap (fnil conj '()) id)))
-
-(def router-config
-  {:data {:muuntaja   m/instance
-          :middleware [swagger/swagger-feature
-                       muuntaja/format-middleware]}})
+(def routes
+  (compojure/routes
+   (GET "/" []
+     (fn [_req]
+       ;; TODO Need to figure out how to marry CSRF tokens and shadow-cljs resource-server
+       (hiccup.page/html5
+        {:lang "en"}
+        [:head
+         [:meta {:charset "UTF-8"}]
+         [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
+         [:link {:href "http://localhost:5444/css/style.css" :rel "stylesheet" :type "text/css"}]
+         [:link {:href "http://localhost:5444/css/tailwind.css" :rel "stylesheet" :type "text/css"}]]
+        [:body
+         [:div#app]
+         [:div#sente-csrf-token {:data-csrf-token (force ring.middleware.anti-forgery/*anti-forgery-token*)}]
+         [:div "Server HTML"]
+         [:script {:src "http://localhost:5444/js/compiled/app.js" :type "text/javascript"}]])))
+   (GET "/status" [] (fn [_req] "OK\n"))
+   routes.ws/get-chsk
+   routes.ws/post-chsk
+   (route/not-found "No such page.")))
 
 (def app
-  (ring/ring-handler
-    (ring/router
-      [routes.swagger/swag
-       ["/api" {:middleware [[wrap :api]]}
-        ["/start" {:name :game/start
-                   :get (fn [_] {:status 200
-                                 :body "Starting game..."})}]
-        ["/end" {:name :game/end
-                 :get (fn [_] {:status 200
-                               :body "Ending game..."})}]]]
-      router-config)
-    (ring/routes
-      (swagger-ui/create-swagger-ui-handler {:path "/"})
-      (ring/create-default-handler))))
+  (-> routes
+      ring.middleware.keyword-params/wrap-keyword-params
+      ring.middleware.params/wrap-params
+      ring.middleware.anti-forgery/wrap-anti-forgery
+      ring.middleware.session/wrap-session))

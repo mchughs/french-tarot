@@ -1,5 +1,4 @@
-(ns specs.cards
-  (:require [malli.util :as mu]))
+(ns specs.cards)
 
 (def Card
   [:multi {:dispatch :type}

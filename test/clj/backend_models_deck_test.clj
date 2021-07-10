@@ -1,5 +1,5 @@
 (ns backend-models-deck-test
-  (:require [clojure.test :refer :all]
+  (:require [clojure.test :refer [deftest is testing]]
             [malli.core :as m]
             [backend.models.deck :as sut]
             [players :as player.data]

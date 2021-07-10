@@ -1,12 +1,8 @@
-frontend+backend:
-	clojure -m figwheel.main \
-	--build dev \
-	--repl
+frontend:
+	clj -A:frontend
 
 backend:
-	clj -A:nREPL -m nrepl.cmdline \
-	--interactive \
-	--color
+	clj -A:backend -A:nREPL
 
 test-clj:
 	clj -A:test

@@ -2,15 +2,15 @@
   (:require [malli.util :as mu]))
 
 (def Bid
-  [:enum {:type :bid/petite       :multiplier 1}
+  [:enum {:type :bid/petit        :multiplier 1}
          {:type :bid/garde        :multiplier 2}
          {:type :bid/garde-sans   :multiplier 4}
          {:type :bid/garde-contre :multiplier 6}])
 
 (def Bonuses
   (mu/optional-keys
-    [:map [:bonus/won-petite-au-bout  [:= 10]
-           :bonus/lost-petite-au-bout [:= -10]
+    [:map [:bonus/won-petit-au-bout   [:= 10]
+           :bonus/lost-petit-au-bout  [:= -10]
            :bonus/single-handful      [:= 20]
            :bonus/double-handful      [:= 40]
            :bonus/triple-handful      [:= 60]

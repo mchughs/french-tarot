@@ -1,4 +1,5 @@
-(ns utils)
+(ns utils
+  (:require [clojure.pprint :as pp]))
 
 (defn fmap
   "updates all the values in a map by f"
@@ -18,3 +19,8 @@
   [m ks]
   [(select-keys m ks)
    (apply dissoc m ks)])
+
+(defn pp-str
+  "Like pr-str but for pretty printing."
+  [x]
+  (with-out-str (pp/pprint x)))

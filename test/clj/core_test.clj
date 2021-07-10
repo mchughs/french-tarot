@@ -1,5 +1,5 @@
 (ns core-test
-  (:require [clojure.test :refer :all]
+  (:require [clojure.test :refer [deftest is]]
             [malli.core :as m]
             [specs.cards :as s.cards]
             [specs.player :as s.player]

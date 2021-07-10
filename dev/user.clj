@@ -2,15 +2,19 @@
   (:require [clojure.tools.namespace.repl :as repl]
             [mount.core :as mount]
             [mount-up.core :as mu]
-            backend.core))
+            backend.core
+            backend.router
+            backend.routes.ws))
 
 (mu/on-upndown :info mu/log :before)
 
-(defn start [& args]
+(defn start! [& _args]
   (mount/start))
 
-(defn reset [& args]
+(defn reset [& _args]
   (mount/stop)
-  (repl/refresh :after 'user/start))
+  (repl/refresh :after 'user/start!))
 
-(start)
+(comment
+  (start!)
+  (reset))

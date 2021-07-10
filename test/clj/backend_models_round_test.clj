@@ -1,5 +1,5 @@
 (ns backend-models-round-test
-  (:require [clojure.test :refer :all]
+  (:require [clojure.test :refer [deftest is]]
             [malli.core :as m]
             [players :as player.data]
             [backend.models.round :as sut]
@@ -10,7 +10,7 @@
 (def sample-pile [{:type :pip, :value 6, :points 0.5, :suit :clubs} {:type :pip, :value 10, :points 0.5, :suit :diamonds} {:type :trump, :value 29, :points 0.5, :ouder? false} {:type :face, :name :queen, :value 13, :points 3.5, :suit :diamonds} {:type :trump, :value 28, :points 0.5, :ouder? false} {:type :pip, :value 3, :points 0.5, :suit :hearts} {:type :pip, :value 4, :points 0.5, :suit :spades} {:type :pip, :value 7, :points 0.5, :suit :diamonds} {:type :trump, :value 15, :points 4.5, :ouder? true} {:type :pip, :value 3, :points 0.5, :suit :diamonds}])
 
 (def p1-bonuses
-  {:bonus/won-petite-au-bout 10})
+  {:bonus/won-petit-au-bout 10})
 
 (def p1-bid
   {:type :bid/garde

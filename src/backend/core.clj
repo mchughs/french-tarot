@@ -1,11 +1,12 @@
 (ns backend.core
-  (:require [backend.server :as server]
-            [mount.core :refer [defstate]]
-            [ring.adapter.jetty :as jetty]))
+  (:require
+   [aleph.http :as http]
+   [backend.server :as server]
+   [mount.core :refer [defstate]]))
 
 (defstate my-server
-  :start (jetty/run-jetty #'server/app
-           {:port  3000
-            :join? false})
+  :start (http/start-server #'server/app
+                            {:port  3000
+                             :join? false})
   :stop (when my-server
-          (.stop my-server)))
+          (.close my-server)))
