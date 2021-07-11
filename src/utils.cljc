@@ -10,7 +10,6 @@
 
 (defn find-first
   [pred coll]
-  (prn coll)
   (first (filter pred coll)))
 
 (defn split-map-by-keys

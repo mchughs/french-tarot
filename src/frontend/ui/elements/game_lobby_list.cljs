@@ -1,27 +1,19 @@
 (ns frontend.ui.elements.game-lobby-list
   (:require
-   [frontend.ws :as ws]
+   [frontend.lobby :as lobby]
    [re-frame.core :as rf]
-   [reagent.core :as r]
-   [taoensso.sente :as sente]))
+   [reagent.core :as r]))
 
 (defn component []
-  (r/with-let [games (rf/subscribe [:game/ids])]
+  (r/with-let [games (rf/subscribe [:games])]
     [:div
      (str "Found " (count @games) " existings games.")
      [:ul
       (->> @games
-           (map (fn [guid]
+           (map (fn [[guid connected-players]]
                   ^{:key (gensym)}
                   [:li
-                   [:button
-                    {:on-click #((:send-fn ws/client-chsk)
-                                 [:game/join {:guid guid}]
-                                 1000
-                                 (fn [reply]
-                                   (js/console.log "Server replied with: " (pr-str reply))
-                                   (if (sente/cb-success? reply)
-                                     (js/console.log "Joining Game #" guid "...")
-                                     (js/console.log "Couldn't Join Game # " guid "..."))))}
-                    (str "Join Game #" guid)]]))
+                   [:button {:disabled (<= 4 (count connected-players))
+                             :on-click #(rf/dispatch [::lobby/join guid])}
+                    (str "Join Game #" guid " with " (count connected-players) "/4 players.")]]))
            doall)]]))

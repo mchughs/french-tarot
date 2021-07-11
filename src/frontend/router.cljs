@@ -2,17 +2,29 @@
   (:require
    [frontend.ws :as ws]
    [re-frame.core :as rf]
-   [taoensso.sente :as sente]))
+   [taoensso.sente :as sente]
+   [frontend.events :as ev]))
 
 (rf/reg-event-db
  :game/register
- (fn [db [_ {guid :guid}]]
-   (update db :game/ids conj guid)))
+ (fn [db [_ {guid :guid user-id :user-id}]]
+   (assoc-in db [:games guid] #{user-id})))
+
+(rf/reg-event-db
+ :game/update
+ (fn [db [_ {guid :guid connected-players :connected-players}]]
+   (assoc-in db [:games guid] connected-players)))
 
 (rf/reg-sub
- :game/ids
+ :games
  (fn [db _]
-   (get db :game/ids)))
+   (get db :games)))
+
+(rf/reg-sub
+ :game
+ :<- [:games]
+ (fn [[games] [_ guid]]
+   (get games guid)))
 
 (defmulti event-msg-handler :id)
 
@@ -25,6 +37,11 @@
   (let [[event-id ?data] event]
     (rf/dispatch [event-id ?data])
     (js/console.log "serverPush > client" event-id ?data)))
+
+(defmethod event-msg-handler :chsk/handshake
+  [{?data :?data}]
+  (let [[uid _] ?data]
+    (rf/dispatch [::ev/set-uid uid])))
 
 ;; TODO Other handlers for default sente events...
 
