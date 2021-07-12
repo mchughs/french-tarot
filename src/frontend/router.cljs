@@ -43,6 +43,13 @@
   (let [[uid _] ?data]
     (rf/dispatch [::ev/set-uid uid])))
 
+(defmethod event-msg-handler :chsk/state
+  [{?data :?data}]
+  (let [[_old-state new-state] ?data
+        {open? :ever-opened?} new-state]
+    (when open?
+      (rf/dispatch [::ev/open]))))
+
 ;; TODO Other handlers for default sente events...
 
 (defonce router

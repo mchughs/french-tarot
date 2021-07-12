@@ -16,3 +16,8 @@
      {:db (assoc db :user/id stored-uid)}
      {:db (assoc db :user/id uid)
       ::cookies/set-uid uid})))
+
+(rf/reg-event-db
+ ::open
+ (fn [db _]
+   (assoc db :chsk/open true)))
