@@ -14,42 +14,42 @@
 (defmulti event-msg-handler :id)
 
 (defmethod event-msg-handler :default
-  [{:keys [_event id _?data _ring-req _?reply-fn _send-fn] :as payload}]
+  [{:keys [_event id _?data _ring-req _?reply-fn _send-fn] :as _payload}]
   (log/infof "Unhandled event: %s" id)
   #_(log/debugf "With payload\n%s" (utils/pp-str payload)))
 
 ;; TODO better persistence
-(defonce registered-games (atom {}))
+(defonce registered-rooms (atom {}))
 
-(defmethod event-msg-handler :game/create
+(defmethod event-msg-handler :room/create
   [{?data :?data}]
-  (let [guid (uuid/v4)
+  (let [rid (uuid/v4)
         uid (:user-id ?data)]
-    (swap! registered-games assoc guid {:host uid :players #{uid}})
-    (broadcast! [:game/register {:guid guid :user-id uid}])))
+    (swap! registered-rooms assoc rid {:host uid :players #{uid}})
+    (broadcast! [:room/register {:rid rid :user-id uid}])))
 
-(defmethod event-msg-handler :game/join
+(defmethod event-msg-handler :room/join
   [{f :?reply-fn data :?data}]
-  (let [{guid :guid user-id :user-id} data
-        player-count (count (get @registered-games guid))
+  (let [{rid :rid user-id :user-id} data
+        player-count (count (get @registered-rooms rid))
         occupied-players (reduce (fn [acc [_ {players :players}]]
                                    (set/union acc players))
                                  #{}
-                                 @registered-games)]
+                                 @registered-rooms)]
     (when f
-      (if (and (< 0 player-count 4) ;; game has an available spot.
-               (not (contains? occupied-players user-id))) ;; client isn't already part of an existing game.
-        (let [updated-games (swap! registered-games update-in [guid :players] conj user-id)
-              connected-players (get-in updated-games [guid :players])]
-          (broadcast! [:game/update {:guid guid
+      (if (and (< 0 player-count 4) ;; room has an available spot.
+               (not (contains? occupied-players user-id))) ;; client isn't already part of an existing room.
+        (let [updated-rooms (swap! registered-rooms update-in [rid :players] conj user-id)
+              connected-players (get-in updated-rooms [rid :players])]
+          (broadcast! [:room/update {:rid rid
                                      :connected-players connected-players}])
           (f :chsk/success))
         (f :chsk/error)))))
 
-(defmethod event-msg-handler :game/get-ids
+(defmethod event-msg-handler :room/get-ids
   [{:keys [?reply-fn]}]
   (when ?reply-fn
-    (?reply-fn {:games @registered-games})))
+    (?reply-fn {:rooms @registered-rooms})))
 
 ;; TODO Other handlers for default sente events...
 

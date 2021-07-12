@@ -1,11 +1,16 @@
 (ns frontend.views.elements.player-list)
 
 (defn component [players]
-  (let [n (count players)]
+  (let [open-spots (- 4 (count players))]
     [:ul
      (->> players
           (map (fn [uid]
-                 ^{:key (gensym)}
+                 ^{:key (gensym "player")}
                  [:li (str "Player #" uid)]))
           doall)
-     (repeat (- 4 n) ^{:key (gensym)}[:li ":"])]))
+     (->> (range open-spots)
+          (map
+             (fn [idx]
+               ^{:key (str "open-spot/" idx)}
+               [:li ":"]))
+          doall)]))

@@ -33,7 +33,7 @@
    :chsk/open
    (fn [_key _atom old-state new-state]
      (when (and (not= old-state new-state) new-state)
-       (lobby/fetch-games!)))))
+       (lobby/fetch-rooms!)))))
 
 (defn init []
   (js/console.log "Init Frontend...")

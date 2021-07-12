@@ -22,13 +22,13 @@
          player-cards false} (->> deck
                                   cut-deck
                                   (map-indexed (fn [idx card] [idx card]))
-                                  (group-by (fn [[idx card]]
+                                  (group-by (fn [[idx _card]]
                                               (contains? dog-card-locations idx)))
                                   (utils/fmap #(map last %)))
         hands (->> player-cards
                    (partition 3)
                    (map-indexed (fn [idx batch] [idx batch]))
-                   (group-by (fn [[idx batch]]
+                   (group-by (fn [[idx _batch]]
                                (mod idx player-count)))
                    (utils/fmap #(->> %
                                      (map last)

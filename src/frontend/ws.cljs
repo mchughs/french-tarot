@@ -14,26 +14,6 @@
    ?csrf-token
    {:type :auto}))
 
-(rf/reg-event-db
- :game/register
- (fn [db [_ {guid :guid user-id :user-id}]]
-   (assoc-in db [:games guid] {:host user-id :players #{user-id}})))
-
-(rf/reg-event-db
- :game/update
- (fn [db [_ {guid :guid connected-players :connected-players}]]
-   (assoc-in db [:games guid :players] connected-players)))
-
-(rf/reg-sub
- :games
- (fn [db _]
-   (get db :games)))
-
-(rf/reg-sub
- :game
- (fn [db [_ guid]]
-   (get-in db [:games guid])))
-
 (defmulti event-msg-handler :id)
 
 (defmethod event-msg-handler :default

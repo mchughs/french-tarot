@@ -1,19 +1,19 @@
-(ns frontend.views.elements.game-lobby-list
+(ns frontend.views.elements.rooms-list
   (:require
    [frontend.lobby :as lobby]
    [re-frame.core :as rf]
    [reagent.core :as r]))
 
 (defn component []
-  (r/with-let [games (rf/subscribe [:games])]
+  (r/with-let [rooms (rf/subscribe [:rooms])]
     [:div
-     (str "Found " (count @games) " existings games.")
+     (str "Found " (count @rooms) " existings rooms.")
      [:ul
-      (->> @games
+      (->> @rooms
            (map (fn [[guid {connected-players :players host :host}]]
-                  ^{:key (gensym)}
+                  ^{:key (gensym "room")}
                   [:li
                    [:button {:disabled (<= 4 (count connected-players))
                              :on-click #(rf/dispatch [::lobby/join guid])}
-                    (str "Join Game #" guid " with " (count connected-players) "/4 players hosted by" host ".")]]))
+                    (str "Join Room #" guid " with " (count connected-players) "/4 players hosted by" host ".")]]))
            doall)]]))
