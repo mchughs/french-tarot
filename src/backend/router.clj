@@ -25,22 +25,22 @@
   [{?data :?data}]
   (let [guid (uuid/v4)
         uid (:user-id ?data)]
-    (swap! registered-games assoc guid #{uid})
+    (swap! registered-games assoc guid {:host uid :players #{uid}})
     (broadcast! [:game/register {:guid guid :user-id uid}])))
 
 (defmethod event-msg-handler :game/join
   [{f :?reply-fn data :?data}]
   (let [{guid :guid user-id :user-id} data
         player-count (count (get @registered-games guid))
-        occupied-players (reduce (fn [acc [_ players]]
+        occupied-players (reduce (fn [acc [_ {players :players}]]
                                    (set/union acc players))
                                  #{}
                                  @registered-games)]
     (when f
       (if (and (< 0 player-count 4) ;; game has an available spot.
                (not (contains? occupied-players user-id))) ;; client isn't already part of an existing game.
-        (let [updated-games (swap! registered-games update guid conj user-id)
-              connected-players (get updated-games guid)]
+        (let [updated-games (swap! registered-games update-in [guid :players] conj user-id)
+              connected-players (get-in updated-games [guid :players])]
           (broadcast! [:game/update {:guid guid
                                      :connected-players connected-players}])
           (f :chsk/success))

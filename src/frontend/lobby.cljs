@@ -47,5 +47,5 @@
  :<- [:games]
  (fn [[uid games] _]
    (->> games
-        (utils/find-first (fn [[_ players]] (contains? players uid)))
+        (utils/find-first (fn [[_ {players :players}]] (contains? players uid)))
         second)))

@@ -10,10 +10,10 @@
      (str "Found " (count @games) " existings games.")
      [:ul
       (->> @games
-           (map (fn [[guid connected-players]]
+           (map (fn [[guid {connected-players :players host :host}]]
                   ^{:key (gensym)}
                   [:li
                    [:button {:disabled (<= 4 (count connected-players))
                              :on-click #(rf/dispatch [::lobby/join guid])}
-                    (str "Join Game #" guid " with " (count connected-players) "/4 players.")]]))
+                    (str "Join Game #" guid " with " (count connected-players) "/4 players hosted by" host ".")]]))
            doall)]]))

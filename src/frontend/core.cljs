@@ -5,19 +5,18 @@
    frontend.subscriptions
    [frontend.ws :as ws]
    [frontend.ui.elements.game-lobby-list :as game-lobby-list]
+   [frontend.ui.elements.player-list :as player-list]
    [re-frame.core :as rf]
    [reagent.core :as r]
    [reagent.dom :as rdom]
    frontend.router))
 
-(defn game-room [participants]
-  [:div "You're in a game containing " (count participants) "/4 players:"
-   [:ul
-    (->> participants
-         (map (fn [uid]
-                ^{:key (gensym)}
-                [:li (str "Player #" uid)]))
-         doall)]])
+(defn game-room [uid {host :host players :players}]
+  [:div "You're in a game containing " (count players) "/4 players hosted by " host ":"
+   [player-list/component players]
+   (when (and (= host uid)
+              (= 4 (count players)))
+     [:button {} "Start the game!"])])
 
 (defn component []
   (r/with-let [open (rf/subscribe [:chsk/open?])
@@ -28,12 +27,12 @@
        [:h1 "Welcome to the game of French Tarrot."]
        [:h2 "Your User ID is " @uid]
        (if @participating-in-game
-         [game-room @participating-in-game]
+         [game-room @uid @participating-in-game]
          [:div
           [:button {:on-click lobby/fetch-games!}
            "Fetch Existing Games"]
           [:button {:on-click #((:send-fn ws/client-chsk) [:game/create {:user-id @uid}])}
-           "Create Game"]
+           "Host a game"]
           [game-lobby-list/component]])])))
 
 (defn init-db! []
