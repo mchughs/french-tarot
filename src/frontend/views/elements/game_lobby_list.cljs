@@ -1,4 +1,4 @@
-(ns frontend.ui.elements.game-lobby-list
+(ns frontend.views.elements.game-lobby-list
   (:require
    [frontend.lobby :as lobby]
    [re-frame.core :as rf]

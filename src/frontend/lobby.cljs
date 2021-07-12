@@ -2,6 +2,7 @@
   (:require
    [frontend.ws :as ws]
    [re-frame.core :as rf]
+   [reitit.frontend.easy :as rfe]
    [taoensso.sente :as sente]
    [utils :as utils]))
 
@@ -28,7 +29,7 @@
     1000
     (fn [reply]
       (if (sente/cb-success? reply)
-        (js/console.log "Got reply " reply)
+        (rfe/push-state :router/room-lobby {:rid guid})
         (js/alert (str "Oops, you have a problem joining game #" guid "...")))))))
 
 (rf/reg-event-fx

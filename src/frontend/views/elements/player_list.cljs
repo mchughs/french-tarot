@@ -1,4 +1,4 @@
-(ns frontend.ui.elements.player-list)
+(ns frontend.views.elements.player-list)
 
 (defn component [players]
   (let [n (count players)]

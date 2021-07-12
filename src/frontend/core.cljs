@@ -2,38 +2,21 @@
   (:require
    [frontend.events :as ev]
    [frontend.lobby :as lobby]
-   frontend.subscriptions
-   [frontend.ws :as ws]
-   [frontend.ui.elements.game-lobby-list :as game-lobby-list]
-   [frontend.ui.elements.player-list :as player-list]
+   [frontend.router :as router]
+   [frontend.views.pages.not-found :as not-found]
    [re-frame.core :as rf]
    [reagent.core :as r]
    [reagent.dom :as rdom]
-   frontend.router))
-
-(defn game-room [uid {host :host players :players}]
-  [:div "You're in a game containing " (count players) "/4 players hosted by " host ":"
-   [player-list/component players]
-   (when (and (= host uid)
-              (= 4 (count players)))
-     [:button {} "Start the game!"])])
+   frontend.subscriptions))
 
 (defn component []
-  (r/with-let [open (rf/subscribe [:chsk/open?])
-               uid (rf/subscribe [::lobby/uid])
-               participating-in-game (rf/subscribe [::lobby/participating-in-game])]
-    (when @open ;; We need to wait for some data from the server coming over the socket for the initial render.
-      [:div
-       [:h1 "Welcome to the game of French Tarrot."]
-       [:h2 "Your User ID is " @uid]
-       (if @participating-in-game
-         [game-room @uid @participating-in-game]
-         [:div
-          [:button {:on-click lobby/fetch-games!}
-           "Fetch Existing Games"]
-          [:button {:on-click #((:send-fn ws/client-chsk) [:game/create {:user-id @uid}])}
-           "Host a game"]
-          [game-lobby-list/component]])])))
+  (r/with-let [match (rf/subscribe [:page/match])]
+    [:div#root
+     (if @match
+       (let [view (:view (:data @match))]
+         (when @(rf/subscribe [:chsk/open?]) ;; wait for the channel socket to be open
+           [view @match]))
+       [not-found/page])]))
 
 (defn init-db! []
   (js/console.log "Init re-frame DB...")
@@ -56,6 +39,7 @@
   (js/console.log "Init Frontend...")
   (init-db!)
   (add-channel-socket-watcher!)
+  (router/start!)
   (mount!))
 
 (comment

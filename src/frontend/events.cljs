@@ -21,3 +21,8 @@
  ::open
  (fn [db _]
    (assoc db :chsk/open true)))
+
+(rf/reg-event-db
+ ::update-page-match
+ (fn [db [_ match]]
+   (assoc db :page/match match)))

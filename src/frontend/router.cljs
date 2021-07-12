@@ -1,58 +1,30 @@
 (ns frontend.router
   (:require
-   [frontend.ws :as ws]
+   [frontend.events :as ev]
+   [frontend.views.pages.home :as home]
+   [frontend.views.pages.room-lobby :as room-lobby]
    [re-frame.core :as rf]
-   [taoensso.sente :as sente]
-   [frontend.events :as ev]))
+   [reitit.coercion.spec :as reitit.s.s]
+   [reitit.frontend :as reitit.f]
+   [reitit.frontend.easy :as reitit.f.e]))
 
-(rf/reg-event-db
- :game/register
- (fn [db [_ {guid :guid user-id :user-id}]]
-   (assoc-in db [:games guid] {:host user-id :players #{user-id}})))
+(def routes
+  [["/"
+    {:name :router/home
+     :view home/page}]
 
-(rf/reg-event-db
- :game/update
- (fn [db [_ {guid :guid connected-players :connected-players}]]
-   (assoc-in db [:games guid :players] connected-players)))
+   ["/room-lobby/:rid"
+    {:name :router/room-lobby
+     :view room-lobby/page
+     :parameters {:path {:rid uuid?}}}]])
 
-(rf/reg-sub
- :games
- (fn [db _]
-   (get db :games)))
+(defn- on-navigation-fn [new-match]
+  (rf/dispatch [::ev/update-page-match new-match]))
 
-(rf/reg-sub
- :game
- :<- [:games]
- (fn [[games] [_ guid]]
-   (get games guid)))
-
-(defmulti event-msg-handler :id)
-
-(defmethod event-msg-handler :default
-  [{id :id :as payload}]
-  (js/console.log "Unhandled Client Side event:" id payload))
-
-(defmethod event-msg-handler :chsk/recv
-  [{event :?data}]
-  (let [[event-id ?data] event]
-    (rf/dispatch [event-id ?data])
-    (js/console.log "serverPush > client" event-id ?data)))
-
-(defmethod event-msg-handler :chsk/handshake
-  [{?data :?data}]
-  (let [[uid _] ?data]
-    (rf/dispatch [::ev/set-uid uid])))
-
-(defmethod event-msg-handler :chsk/state
-  [{?data :?data}]
-  (let [[_old-state new-state] ?data
-        {open? :ever-opened?} new-state]
-    (when open?
-      (rf/dispatch [::ev/open]))))
-
-;; TODO Other handlers for default sente events...
-
-(defonce router
-  (sente/start-client-chsk-router!
-   (:ch-recv ws/client-chsk)
-   event-msg-handler))
+(defn start! []
+  (js/console.log "Starting Router...")
+  (reitit.f.e/start!
+   (reitit.f/router routes {:data {:coercion reitit.s.s/coercion}})
+   on-navigation-fn
+    ;; set to false to enable HistoryAPI
+   {:use-fragment true}))
