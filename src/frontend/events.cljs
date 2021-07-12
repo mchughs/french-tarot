@@ -33,13 +33,29 @@
  (fn [rid]
    (rfe/push-state :router/room-lobby {:rid rid})))
 
-(rf/reg-event-fx
+(rf/reg-event-db
  :room/register
- (fn [{db :db} [_ {rid :rid user-id :user-id}]]
-   {:db (assoc-in db [:rooms rid] {:host user-id :players #{user-id}})
-    ::send-to-room rid}))
+ (fn [db [_ {rid :rid user-id :user-id}]]
+   (assoc-in db [:rooms rid] {:host user-id :players #{user-id}})))
 
 (rf/reg-event-db
  :room/update
  (fn [db [_ {rid :rid connected-players :connected-players}]]
-   (assoc-in db [:rooms rid :players] connected-players)))
+   (if (empty? connected-players)
+     (update db :rooms dissoc rid) ;; If there are no more players in the room, delete it.
+     (assoc-in db [:rooms rid :players] connected-players))))
+
+(rf/reg-fx
+ ::to-homepage
+ (fn [_]   
+   (rfe/push-state :router/home)))
+
+(rf/reg-event-fx
+ :room/exit
+ (fn [_ _]
+   {::to-homepage _}))
+
+(rf/reg-event-fx
+ :room/enter
+ (fn [_ [_ {rid :rid}]]
+   {::send-to-room rid}))
