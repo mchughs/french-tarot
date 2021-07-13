@@ -13,7 +13,12 @@
                player-name (rf/subscribe [:player-name])]
     [:header
      [:div.pb-5.border-b.border-gray-200.sm:pb-0
-      [:h3.text-lg.leading-6.font-medium.text-gray-900 "French Tarrot"]
+      [:h3.text-lg.leading-6.font-medium.text-gray-900 "French Tarot"]
+      [:h4.text-md.leading-6.font-medium.text-gray-700
+       "/ʒø dø taʁo/"
+       [:audio#audio-example [:source {:src "http://localhost:5444/assets/audio/jeu_de_tarot.mp3" :type "audio/mpeg"}]]
+       [:button.px-4 {:on-click #(.play (.getElementById js/document "audio-example"))}
+        [:img {:src "https://img.icons8.com/material-rounded/24/000000/speaker.png"}]]]
       [:h4.text-md.leading-6.font-medium.text-gray-700 "Username: " @player-name]
       [:div.mt-3.sm:mt-4
        [:div.sm:hidden

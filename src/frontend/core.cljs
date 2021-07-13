@@ -15,10 +15,11 @@
     [:div#root
      (if @match
        (let [{view :view tab-name :name} (:data @match)]
-         [:<>
-          [header/component tab-name]
-          (when @(rf/subscribe [:chsk/open?]) ;; wait for the channel socket to be open           
-            [view @match])])
+         [:div {:class "bg-gray-200 grid overflow-hidden sm:rounded-lg"}
+          [:div {:class "bg-white px-4 py-5 sm:p-6 h-screen max-w-screen-lg justify-self-center w-full"}
+           [header/component tab-name]
+           (when @(rf/subscribe [:chsk/open?]) ;; wait for the channel socket to be open           
+             [view @match])]])
        [not-found/page])]))
 
 (defn init-db! []
