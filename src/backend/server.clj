@@ -21,11 +21,10 @@
          [:meta {:charset "UTF-8"}]
          [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
          [:link {:href "http://localhost:5444/css/style.css" :rel "stylesheet" :type "text/css"}]
-         [:link {:href "http://localhost:5444/css/tailwind.css" :rel "stylesheet" :type "text/css"}]]
+         [:link {:href "http://localhost:5444/css/compiled/tailwind.css" :rel "stylesheet" :type "text/css"}]]
         [:body
          [:div#app]
          [:div#sente-csrf-token {:data-csrf-token (force ring.middleware.anti-forgery/*anti-forgery-token*)}]
-         [:div "Server HTML"]
          [:script {:src "http://localhost:5444/js/compiled/app.js" :type "text/javascript"}]])))
    (GET "/status" [] (fn [_req] "OK\n"))
    routes.ws/get-chsk

@@ -1,16 +1,31 @@
-(ns frontend.views.elements.player-list)
+(ns frontend.views.elements.player-list
+  (:require [re-frame.core :as rf]))
 
-(defn component [players]
+(defn list-item [& [{:keys [name host? you?]
+                     :or {name "_"
+                          host? false
+                          you? false}}]]
+  [:li.py-4.flex
+   [:div.ml-3
+    [:p.text-sm.font-medium.text-gray-900
+     {:class (when you? "text-purple-700 text-opacity-100")}
+     name]
+    (when host?
+      [:p.text-sm.text-gray-500
+       "Room Host"])]])
+     
+
+(defn component [player-id host-id players]
   (let [open-spots (- 4 (count players))]
-    [:ul
+    [:ul.divide-y.divide-gray-200
      (->> players
           (map (fn [uid]
-                 ^{:key (gensym "player")}
-                 [:li (str "Player #" uid)]))
+                 ^{:key (gensym)}
+                 [list-item
+                  {:name @(rf/subscribe [:player-name uid])
+                   :host? (= host-id uid)
+                   :you? (= player-id uid)}]))
           doall)
      (->> (range open-spots)
-          (map
-             (fn [idx]
-               ^{:key (str "open-spot/" idx)}
-               [:li ":"]))
+          (map (fn [_] ^{:key (gensym)} [list-item]))
           doall)]))

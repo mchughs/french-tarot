@@ -19,6 +19,20 @@
      (let [rooms (if (sente/cb-success? reply) (:rooms reply) {})]
        (rf/dispatch [:room/register-all rooms])))))
 
+(defn fetch-names! [] ;; For illustrative purposes only
+  ((:send-fn ws/client-chsk)
+   [:player-name/fetch {}]))
+
+(rf/reg-event-db
+ :player-name/publish ;; For illustrative purposes only
+ (fn [db [_ {player-map :player-map}]]
+   (assoc db :player-map player-map)))
+
+(rf/reg-sub
+ :player-name ;; For illustrative purposes only
+ (fn [db [_ uid]]
+   (get (:player-map db) (or uid (:user/id db)))))
+
 (rf/reg-fx
  :room/join
  (fn [[rid user-id]]
@@ -29,6 +43,11 @@
       (if (sente/cb-success? reply)
         (rf/dispatch [:room/enter {:rid rid}])
         (js/alert (str "Oops, you have a problem joining room #" rid "...")))))))
+
+(rf/reg-event-fx
+ ::join
+ (fn [{db :db} [_ rid]]
+   {:room/join [rid (:user/id db)]}))
 
 (rf/reg-fx
  :room/leave
@@ -45,11 +64,6 @@
  ::leave
  (fn [_ [_ payload]]
    {:room/leave payload}))
-
-(rf/reg-event-fx
- ::join
- (fn [{db :db} [_ rid]]
-   {:room/join [rid (:user/id db)]}))
 
 (rf/reg-sub
  ::uid

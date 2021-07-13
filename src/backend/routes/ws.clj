@@ -5,12 +5,23 @@
    [taoensso.sente :as sente]
    [taoensso.sente.server-adapters.aleph :refer [get-sch-adapter]]))
 
+;; For illustrative purposes only
+(defonce *player-map (atom {}))
+
 (defstate server-chsk
   :start (sente/make-channel-socket-server!
           (get-sch-adapter)
-          {:user-id-fn (fn [{client-id :client-id cookies :cookies}]                         
-                         (or (get-in cookies ["sente-user-id" :value])
-                             client-id))}))
+          {:user-id-fn (fn [{client-id :client-id cookies :cookies}]
+                         (let [uid (or (get-in cookies ["sente-user-id" :value])
+                                       client-id)]
+                           ;; For illustrative purposes only
+                           (swap! *player-map (fn [old-map]
+                                                (assoc old-map
+                                                       uid
+                                                       (str (rand-nth ["Alice" "Bob" "Charlie" "David" "Eve" "Florence" "Giselle" "Harry" "Ivan" "Juliet" "Kevin" "Lisa"])
+                                                            "-"
+                                                            (rand-int 999)))))
+                           uid))}))
 
 (def get-chsk
   (GET "/chsk" req

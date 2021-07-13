@@ -5,20 +5,17 @@
    [frontend.ws :as ws]
    [re-frame.core :as rf]
    [reagent.core :as r]
+   [frontend.views.components.button :as button]
    frontend.subscriptions))
 
 (defn page []
   (r/with-let [uid (rf/subscribe [::lobby/uid])
                committed-room (rf/subscribe [:committed-room])]
-    (if @committed-room ;; TODO definitily a bit jumpy. Could smooth things out.
-      ;; TODO should be in a life-cycle  
-      (rf/dispatch [:room/enter {:rid @committed-room}]) ;; If the user should be a room, send them there. They can leave if they choose by explicitly exiting.
-      [:div
-       [:h1 "Welcome to the game of French Tarrot."]
-       [:h2 "Your User ID is " @uid]
-       [:div
-        [:button {:on-click lobby/fetch-rooms!}
-         "Fetch Existing Rooms"]
-        [:button {:on-click #((:send-fn ws/client-chsk) [:room/create {:user-id @uid}])}
-         "Host a game"]
-        [rooms-list/component]]])))
+    [:div
+     [:div "You are already in room " @committed-room ". Click on the room tab to return to it"]
+     [button/component {:on-click lobby/fetch-rooms!}
+      "Fetch Existing Rooms"]
+     [button/component {:on-click #((:send-fn ws/client-chsk) [:room/create {:user-id @uid}])
+                        :disabled @committed-room}
+      "Host a game"]
+     [rooms-list/component]]))

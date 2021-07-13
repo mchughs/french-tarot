@@ -4,6 +4,7 @@
    [frontend.lobby :as lobby]
    [frontend.router :as router]
    [frontend.views.pages.not-found :as not-found]
+   [frontend.views.elements.header :as header]
    [re-frame.core :as rf]
    [reagent.core :as r]
    [reagent.dom :as rdom]
@@ -13,9 +14,11 @@
   (r/with-let [match (rf/subscribe [:page/match])]
     [:div#root
      (if @match
-       (let [view (:view (:data @match))]
-         (when @(rf/subscribe [:chsk/open?]) ;; wait for the channel socket to be open
-           [view @match]))
+       (let [{view :view tab-name :name} (:data @match)]
+         [:<>
+          [header/component tab-name]
+          (when @(rf/subscribe [:chsk/open?]) ;; wait for the channel socket to be open           
+            [view @match])])
        [not-found/page])]))
 
 (defn init-db! []
@@ -33,6 +36,7 @@
    :chsk/open
    (fn [_key _atom old-state new-state]
      (when (and (not= old-state new-state) new-state)
+       (lobby/fetch-names!) ;; For illustrative purposes only
        (lobby/fetch-rooms!)))))
 
 (defn init []

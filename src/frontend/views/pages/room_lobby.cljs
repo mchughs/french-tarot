@@ -13,9 +13,8 @@
         [:div "Sorry, we couldn't find a room with ID:" rid]
         (let [{host :host players :players} @room
               host? (= host @uid)]
-          [:div
-           [:span "You're in a room containing " (count players) "/4 players hosted by " host ":"]
-           [player-list/component players]
+          [:div           
+           [player-list/component @uid host players]
            [:button {:on-click #(rf/dispatch [::lobby/leave {:user-id @uid :host? host? :rid rid}])}
             "Leave the room."]
            (when (and host?

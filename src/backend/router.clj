@@ -21,6 +21,10 @@
   (log/infof "Unhandled event: %s" id)
   #_(log/debugf "With payload\n%s" (utils/pp-str payload)))
 
+(defmethod event-msg-handler :player-name/fetch
+  [_] ;; For illustrative purposes only
+  (broadcast! [:player-name/publish {:player-map @ws/*player-map}]))
+
 ;; TODO better persistence
 (defonce registered-rooms (atom {}))
 
