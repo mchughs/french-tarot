@@ -2,8 +2,7 @@
   (:require
    [frontend.lobby :as lobby]
    [re-frame.core :as rf]
-   [reagent.core :as r]
-   [frontend.views.components.button :as button]))
+   [reagent.core :as r]))
 
 (defn component [committed-room]
   (r/with-let [rooms (rf/subscribe [:rooms])]
@@ -34,9 +33,9 @@
                         [:td.px-6.py-4.whitespace-nowrap.text-sm.text-gray-500
                          (str (count connected-players) "/4")]
                         [:td.px-6.py-4.whitespace-nowrap.text-left.text-sm.font-medium
-                         [button/component {:theme (when (= committed-room rid) :alt)
-                                            :disabled (<= 4 (count connected-players))
-                                            :on-click #(rf/dispatch [::lobby/join rid])}
+                         [:button {:class (when (= committed-room rid) "blue")
+                                   :disabled (<= 4 (count connected-players))
+                                   :on-click #(rf/dispatch [::lobby/join rid])}
                           (if (= committed-room rid)
                             "Return"
                             "Join!")]]]))
