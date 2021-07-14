@@ -6,7 +6,7 @@
 
 (defn component [committed-room]
   (r/with-let [rooms (rf/subscribe [:rooms])]
-    [:div.max-w-max
+    [:div.max-w-max.py-5
      [:div.flex.flex-col
       [:div.-my-2.overflow-x-auto.sm:-mx-6.lg:-mx-8
        [:div.py-2.align-middle.inline-block.min-w-full.sm:px-6.lg:px-8
