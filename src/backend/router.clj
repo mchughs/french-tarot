@@ -1,13 +1,11 @@
 (ns backend.router
   (:require
+   [backend.models.room :as room]
+   [backend.models.round :as round]
    [backend.routes.ws :as ws]
-   [backend.models.deck :as deck]
-   [clj-uuid :as uuid]
-   [clojure.set :as set]
    [clojure.tools.logging :as log]
    [mount.core :refer [defstate]]
-   [taoensso.sente :as sente]
-   [utils :as utils]))
+   [taoensso.sente :as sente]))
 
 (defn- broadcast!
   ([event]
@@ -31,48 +29,38 @@
 (defonce registered-rooms (atom {}))
 
 (defmethod event-msg-handler :room/create
-  [{?data :?data}]
-  (let [rid (uuid/v4)
-        uid (:user-id ?data)]
-    (swap! registered-rooms assoc rid {:host uid :players #{uid}})
+  [{uid :uid}]
+  (let [{rid :rid :as new-room} (room/create uid)]
+    (swap! registered-rooms assoc rid new-room)
     (broadcast! [:room/enter {:rid rid}] #{uid})
     (broadcast! [:room/register {:rid rid :user-id uid}])))
 
 (defmethod event-msg-handler :room/join
-  [{f :?reply-fn data :?data }]
-  (let [{rid :rid user-id :user-id} data
-        player-count (count (get @registered-rooms rid))
-        other-rooms (dissoc @registered-rooms rid)
-        occupied-players (reduce (fn [acc [_ {players :players}]]
-                                   (set/union acc players))
-                                 #{}
-                                 other-rooms)]
+  [{f :?reply-fn ?data :?data uid :uid}]
+  (let [{rid :rid} ?data]
     (when f
-      (if (and (< 0 player-count 4) ;; room has available spots. 
-               (not (contains? occupied-players user-id))) ;; client isn't already part of another existing room.
-        (let [updated-rooms (swap! registered-rooms update-in [rid :players] conj user-id) ;; idempotent operation.
-              connected-players (get-in updated-rooms [rid :players])]
-          (broadcast! [:room/update {:rid rid :connected-players connected-players}])
+      (if (room/can-join? @registered-rooms rid uid)
+        (let [new-room (room/add-player (get @registered-rooms rid)
+                                        uid)]
+          (swap! registered-rooms assoc rid new-room) ;; idempotent operation.
+          (broadcast! [:room/update {:rid rid :connected-players (:players new-room)}])
           (f :chsk/success))
         (f :chsk/error)))))
 
 (defmethod event-msg-handler :room/leave
-  [{f :?reply-fn data :?data}]
-  (let [{host? :host?
-         user-id :user-id
-         rid :rid} data
-        {players :players :as room} (get @registered-rooms rid)]
-    (when f ;; TODO this section illustrates that the dual copies of room state in frontend and backend is getting hard to synchronize.
-      (if (and room (contains? players user-id)) ;; The room exists and the user is in it. 
-        (let [leaving-players (if host?
-                                players  ;; kicks everyone out of the room if the host leaves.
-                                #{user-id}) ;; if not the host, then just the requesting user leaves.
-              remaining-players (set/difference players leaving-players)]
-          (if (empty? remaining-players)
-            (swap! registered-rooms dissoc rid)  ;; drop the room from the registry if there are no more players.
-            (swap! registered-rooms update-in [rid :players] disj user-id))  ;; drop the player from room
-          (broadcast! [:room/exit {}] leaving-players)
-          (broadcast! [:room/update {:rid rid :connected-players remaining-players}])
+  [{f :?reply-fn ?data :?data uid :uid}]
+  (let [{rid :rid} ?data
+        room (get @registered-rooms rid)]
+    (when f
+      (if (room/can-leave? @registered-rooms rid uid)
+        (let [new-room (room/remove-player room uid)] ;; removes all players if the host leaves
+          (if new-room
+            (swap! registered-rooms assoc rid new-room)
+            (swap! registered-rooms dissoc rid)) ;; drop the room from the registry if there are no more players. 
+          (let [{:keys [players host]} room
+                leaving-players (if (= host uid) players #{uid})]
+            (broadcast! [:room/exit {}] leaving-players))          
+          (broadcast! [:room/update {:rid rid :connected-players (:players new-room)}])          
           (f :chsk/success))
         (f :chsk/error)))))
 
@@ -92,107 +80,36 @@
           (f :chsk/success))
         (f :chsk/error)))))
 
-(defn- init-player [idx uid]
-  {:id uid
-   :name (get @ws/*player-map uid)
-   :position idx
-   :score 0
-   :hand #{}})
+(defn- broadcast-round! [round]
+  (doseq [player (:players round)
+          :let [event [:round/deal player]
+                uid (:id player)]]
+    (broadcast! event [uid])))
 
 (defmethod event-msg-handler :round/start
   [{f :?reply-fn data :?data uid :uid}]
   (let [{rid :rid} data
-        {players-ids :players
-         host :host
-         closed? :closed?
-         round-history :round-history
-         :as room} (get @registered-rooms rid)
+        {:keys [players host closed? round-history] :as room} (get @registered-rooms rid)
         host? (= uid host)]
     (when f      
-      (if (and room host? (= 4 (count players-ids)) closed?)
-        (if (empty? round-history) ;; first round of the game
-          (let [{:keys [players _dog] :as first-round} (as-> players-ids $
-                                                          (map-indexed init-player $)
-                                                          (deck/deal $
-                                                                     (:id (first $))
-                                                                     (deck/shuffled-deck)))]
-            (swap! registered-rooms update rid assoc :round-history [first-round])
-            (doseq [player players
-                    :let [event [:round/deal player]
-                          uid (:id player)]]
-              (broadcast! event [uid])) ;; broadcast! expects a coll of uids
-            (f :chsk/success))
-          (let [round-history (get-in @registered-rooms [rid :round-history])
-                round-number (count round-history)
-                {:keys [players dog defenders taker] :as latest-round} (last round-history)
-                deck (if (and defenders taker) ;; TODO do an integrity check on the deck so that each card is unique and there are 78
-                       (concat (:pile defenders) (:pile taker)) ;; the last round was played out
-                       (->> players ;; everyone passed on the last round
-                            (mapcat :hand)
-                            (concat dog)
-                            vec))
-                dealer-idx (mod round-number 4) ;; gives us who's turn is is to deal
-                dealer-id (->> players
-                               (utils/find-first #(= dealer-idx (:position %)))
-                               :id)
-                next-round (deck/deal players dealer-id deck)]
-            (swap! registered-rooms update-in [rid :round-history] conj next-round)
-            (doseq [player (:players next-round)
-                    :let [event [:round/deal player]
-                          uid (:id player)]]
-              (broadcast! event [uid]))
-            (f :chsk/success)))
+      (if (and room host? (= 4 (count players)) closed?)
+        (let [new-round-history (if (empty? round-history)
+                                  (round/init-history players)
+                                  (round/add-next round-history))]
+          (swap! registered-rooms update rid assoc :round-history new-round-history)
+          (broadcast-round! (last new-round-history))
+          (f :chsk/success))
         (f :chsk/error)))))
 
 (defmethod event-msg-handler :round/end
-  [{f :?reply-fn data :?data uid :uid}]
-  (let [{rid :rid} data
-        {players-ids :players
-         host :host
-         closed? :closed?
-         round-history :round-history
-         :as room} (get @registered-rooms rid)
-        host? (= uid host)]
-    (when f
-      (if (and room host? (= 4 (count players-ids)) closed?)
-        (f :chsk/success) ;; TODO
-        #_(if (empty? round-history) ;; first round of the game
-          (let [{:keys [players _dog] :as first-round} (as-> players-ids $
-                                                         (map-indexed init-player $)
-                                                         (deck/deal $
-                                                                    (:id (first $))
-                                                                    (deck/shuffled-deck)))]
-            (swap! registered-rooms update rid assoc :round-history [first-round])
-            (doseq [player players
-                    :let [event [:round/deal player]
-                          uid (:id player)]]
-              (broadcast! event [uid])) ;; broadcast! expects a coll of uids
-            (f :chsk/success))
-          (let [round-history (get-in @registered-rooms [rid :round-history])
-                round-number (count round-history)
-                {:keys [players dog defenders taker] :as latest-round} (last round-history)
-                deck (if (and defenders taker) ;; TODO do an integrity check on the deck so that each card is unique and there are 78
-                       (concat (:pile defenders) (:pile taker)) ;; the last round was played out
-                       (->> players ;; everyone passed on the last round
-                            (mapcat :hand)
-                            (concat dog)))
-                dealer-idx (mod round-number 4) ;; gives us who's turn is is to deal
-                dealer-id (->> players
-                               (utils/find-first #(= dealer-idx (:position %)))
-                               :id)
-                next-round (deck/deal players dealer-id deck)]
-            (swap! registered-rooms update-in [rid :round-history] conj next-round)
-            (doseq [player (:players next-round)
-                    :let [event [:round/deal player]
-                          uid (:id player)]]
-              (broadcast! event [uid]))
-            (f :chsk/success)))
-        (f :chsk/error)))))
+  [{f :?reply-fn}] ;; TODO
+  (when f
+    (f :chsk/success)))
 
 (defmethod event-msg-handler :room/get-ids
-  [{:keys [?reply-fn]}]
-  (when ?reply-fn
-    (?reply-fn {:rooms @registered-rooms})))
+  [{f :?reply-fn}]
+  (when f
+    (f {:rooms @registered-rooms})))
 
 ;; TODO Other handlers for default sente events...
 

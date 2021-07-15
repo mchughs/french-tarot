@@ -22,14 +22,13 @@
      [:li "played with a special deck of 78 cards"]]]])
 
 (defn page []
-  (r/with-let [uid (rf/subscribe [::lobby/uid])
-               committed-room (rf/subscribe [:committed-room])]
+  (r/with-let [committed-room (rf/subscribe [:committed-room])]
     [:div.py-5
      [info-section]
      [rooms-list/component @committed-room]
      [:div.flex
       [:button.blue.flex-1.sm:flex-initial.mx-2 {:on-click lobby/fetch-rooms!}       
        "Fetch Existing Rooms"]
-      [:button.flex-1.sm:flex-initial.mx-2 {:on-click #((:send-fn ws/client-chsk) [:room/create {:user-id @uid}])
+      [:button.flex-1.sm:flex-initial.mx-2 {:on-click #((:send-fn ws/client-chsk) [:room/create {}])
                        :disabled @committed-room}
        "Host a game"]]]))

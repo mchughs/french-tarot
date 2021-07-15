@@ -1,5 +1,7 @@
 (ns backend.models.round
   (:require
+   [backend.models.deck :as deck]
+   [backend.routes.ws :as ws]
    [utils :as utils]))
 
 (def point-threshold
@@ -43,3 +45,38 @@
 
     {:taker (update player :score + (* (count defenders) hand-score))
      :defenders (map #(update % :score - hand-score) defenders)}))
+
+(defn- init-player [*player-map idx uid]
+  {:id uid
+   :name (get *player-map uid)
+   :position idx
+   :score 0
+   :hand #{}})
+
+(defn init-history
+  "Builds the first round."
+  [player-ids]
+  (let [players (map-indexed (partial init-player @ws/*player-map) player-ids)
+        first-round (deck/deal players
+                               (:id (first players))
+                               (deck/shuffled-deck))]
+    [first-round]))
+
+(defn add-next
+  "Builds a new round based on the previous round.
+   WARNING `round-history` needs to be a vector for conj to work properly."
+  [round-history]
+  (let [round-number (count round-history)
+        {:keys [players dog defenders taker]} (last round-history)
+        deck (if (and defenders taker) ;; TODO do an integrity check on the deck so that each card is unique and there are 78
+               (concat (:pile defenders) (:pile taker)) ;; the last round was played out
+               (->> players ;; everyone passed on the last round
+                    (mapcat :hand)
+                    (concat dog)
+                    vec))
+        dealer-idx (mod round-number 4) ;; gives us who's turn is is to deal
+        dealer-id (->> players
+                       (utils/find-first #(= dealer-idx (:position %)))
+                       :id)
+        next-round (deck/deal players dealer-id deck)]
+    (conj round-history next-round)))
