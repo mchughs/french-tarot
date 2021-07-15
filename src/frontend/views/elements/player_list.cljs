@@ -1,5 +1,7 @@
 (ns frontend.views.elements.player-list
-  (:require [re-frame.core :as rf]))
+  (:require
+   [frontend.controllers.players :as players]
+   [re-frame.core :as rf]))
 
 (defn list-item [& [{:keys [name host? you?]
                      :or {name "_"
@@ -22,7 +24,7 @@
           (map (fn [uid]
                  ^{:key (gensym)}
                  [list-item
-                  {:name @(rf/subscribe [:player-name uid])
+                  {:name @(rf/subscribe [::players/name uid])
                    :host? (= host-id uid)
                    :you? (= player-id uid)}]))
           doall)

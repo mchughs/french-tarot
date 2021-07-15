@@ -1,11 +1,11 @@
 (ns frontend.views.pages.home
   (:require
-   [frontend.lobby :as lobby]
+   [frontend.controllers.lobby :as lobby]
+   [frontend.controllers.user :as user]
    [frontend.views.elements.rooms-list :as rooms-list]
-   [frontend.ws :as ws]
+   [frontend.websockets.core :as ws]
    [re-frame.core :as rf]
-   [reagent.core :as r]
-   frontend.subscriptions))
+   [reagent.core :as r]))
 
 (defn info-section []
   [:section.mx-auto
@@ -22,13 +22,15 @@
      [:li "played with a special deck of 78 cards"]]]])
 
 (defn page []
-  (r/with-let [committed-room (rf/subscribe [:committed-room])]
+  (r/with-let [user-room (rf/subscribe [::user/room])]
     [:div.py-5
      [info-section]
-     [rooms-list/component @committed-room]
+     [rooms-list/component @user-room]
      [:div.flex
-      [:button.blue.flex-1.sm:flex-initial.mx-2 {:on-click lobby/fetch-rooms!}       
+      [:button.blue.flex-1.sm:flex-initial.mx-2
+       {:on-click lobby/fetch-rooms!}
        "Fetch Existing Rooms"]
-      [:button.flex-1.sm:flex-initial.mx-2 {:on-click #((:send-fn ws/client-chsk) [:room/create {}])
-                       :disabled @committed-room}
+      [:button.flex-1.sm:flex-initial.mx-2
+       {:on-click #((:send-fn ws/client-chsk) [:room/create {}])
+        :disabled @user-room}
        "Host a game"]]]))

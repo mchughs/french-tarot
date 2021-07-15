@@ -1,18 +1,7 @@
-(ns frontend.ws
+(ns frontend.websockets.event-handler
   (:require
    [re-frame.core :as rf]
-   [taoensso.sente :as sente]
-   [frontend.events :as ev]))
-
-(def ?csrf-token ;; TODO, won't be working yet.
-  (when-let [el (.getElementById js/document "sente-csrf-token")]
-    (.getAttribute el "data-csrf-token")))
-
-(defonce client-chsk
-  (sente/make-channel-socket-client!
-   "/chsk"
-   ?csrf-token
-   {:type :auto}))
+   [frontend.websockets.events :as ws.events]))
 
 (defmulti event-msg-handler :id)
 
@@ -29,19 +18,13 @@
 (defmethod event-msg-handler :chsk/handshake
   [{?data :?data}]
   (let [[uid _] ?data]
-    (rf/dispatch [::ev/set-uid uid])))
+    (rf/dispatch [::ws.events/set-user-id uid])))
 
 (defmethod event-msg-handler :chsk/state
   [{?data :?data}]
   (let [[_old-state new-state] ?data
         {open? :ever-opened?} new-state]
     (when open?
-      (rf/dispatch [::ev/open]))))
+      (rf/dispatch [::ws.events/open]))))
 
 ;; TODO Other handlers for default sente events...
-
-(defonce ws-router
-  (sente/start-client-chsk-router!
-   (:ch-recv client-chsk)
-   event-msg-handler))
-

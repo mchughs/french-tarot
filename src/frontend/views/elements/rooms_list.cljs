@@ -1,11 +1,12 @@
 (ns frontend.views.elements.rooms-list
   (:require
-   [frontend.lobby :as lobby]
+   [frontend.controllers.players :as players]
+   [frontend.controllers.room :as room]
    [re-frame.core :as rf]
    [reagent.core :as r]))
 
-(defn component [committed-room]
-  (r/with-let [rooms (rf/subscribe [:rooms])]
+(defn component [user-room]
+  (r/with-let [rooms (rf/subscribe [::room/rooms])]
     [:div.max-w-max.py-5
      [:div.flex.flex-col
       [:div.-my-2.overflow-x-auto.sm:-mx-6.lg:-mx-8
@@ -26,23 +27,23 @@
           [:tbody
            (->> @rooms
                 (map (fn [[rid {connected-players :players host :host closed? :closed?}]]
-                       ^{:key (gensym)}
-                       [:tr.bg-white
-                        [:td.px-6.py-4.whitespace-nowrap.text-sm.text-gray-500
-                         @(rf/subscribe [:player-name host])]
-                        [:td.px-6.py-4.whitespace-nowrap.text-sm.text-gray-500
-                         (str (count connected-players) "/4")]
-                        [:td.px-6.py-4.whitespace-nowrap.text-left.text-sm.font-medium
-                         [:button {:class (when (or (= committed-room rid) closed?)
-                                            "blue")
-                                   :disabled (<= 4 (count connected-players))
-                                   :on-click #(rf/dispatch [::lobby/join rid])}
-                          (cond closed?
-                                "In Progress"
-                                (= committed-room rid)
-                                "Return"
-                                :else
-                                "Join!")]]]))
+                       (let [participant? (= user-room rid)]
+                         ^{:key (gensym)}
+                         [:tr.bg-white
+                          [:td.px-6.py-4.whitespace-nowrap.text-sm.text-gray-500
+                           @(rf/subscribe [::players/name host])]
+                          [:td.px-6.py-4.whitespace-nowrap.text-sm.text-gray-500
+                           (str (count connected-players) "/4")]
+                          [:td.px-6.py-4.whitespace-nowrap.text-left.text-sm.font-medium
+                           [:button {:class (when (or (= user-room rid) closed?)
+                                              "blue")
+                                     :disabled (and (<= 4 (count connected-players)) 
+                                                    ;; TODO fix socket event failing to let participating players in.
+                                                    (not participant?)) ;; let participating players use the "Return" button
+                                     :on-click #(rf/dispatch [::room/join rid])}
+                            (cond closed? "In Progress"
+                                  participant? "Return"
+                                  :else "Join!")]]])))
                 doall)]]]
         (when-not
          (pos? (count @rooms))

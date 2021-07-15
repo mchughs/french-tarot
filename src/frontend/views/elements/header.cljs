@@ -1,7 +1,9 @@
 (ns frontend.views.elements.header
-  (:require [reitit.frontend.easy :as rfe]
-            [re-frame.core :as rf]
-            [reagent.core :as r]))
+  (:require
+   [frontend.controllers.user :as user]
+   [reitit.frontend.easy :as rfe]
+   [re-frame.core :as rf]
+   [reagent.core :as r]))
 
 (defn tabs [rid?]
   [{:label "Homepage" :name :router/home}
@@ -9,8 +11,8 @@
    (when rid? {:label "Room" :name :router/room-lobby})])
 
 (defn component [selected-tab]
-  (r/with-let [rid (rf/subscribe [:committed-room])
-               player-name (rf/subscribe [:player-name])]
+  (r/with-let [rid (rf/subscribe [::user/room])
+               username (rf/subscribe [::user/name])]
     [:header
      [:div.pb-5.border-b.border-gray-200.sm:pb-0
       [:h1.text-lg.font-bold.text-gray-900 "French Tarot"]
@@ -20,7 +22,7 @@
        [:button.basic.px-2 {:on-click #(.play (.getElementById js/document "audio-example"))}
         [:img {:src "https://img.icons8.com/material-rounded/15/000000/speaker.png"}]]]
       [:h4.text-base.font-small.text-gray-600.pt-2 "Username: "
-       [:span.font-medium.text-gray-700.pt-3 @player-name]]
+       [:span.font-medium.text-gray-700.pt-3 @username]]
       [:div.mt-3.sm:mt-4
        [:div.sm:hidden
         [:label.sr-only {:for "current-tab"} "Select a tab"]

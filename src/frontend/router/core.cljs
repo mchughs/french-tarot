@@ -1,6 +1,6 @@
-(ns frontend.router
+(ns frontend.router.core
   (:require
-   [frontend.events :as ev]
+   [frontend.router.events :as router.events]
    [frontend.views.pages.about :as about]
    [frontend.views.pages.home :as home]
    [frontend.views.pages.room-lobby :as room-lobby]
@@ -24,7 +24,7 @@
      :view about/page}]])
 
 (defn- on-navigation-fn [new-match]
-  (rf/dispatch [::ev/update-page-match new-match]))
+  (rf/dispatch [::router.events/update-page-match new-match]))
 
 (defn start! []
   (js/console.log "Starting Router...")

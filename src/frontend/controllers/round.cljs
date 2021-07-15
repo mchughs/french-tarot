@@ -1,14 +1,14 @@
-(ns frontend.round
+(ns frontend.controllers.round
   (:require
-   [frontend.ws :as ws]
+   [clojure.set :as set]
+   [frontend.websockets.core :as ws]
    [re-frame.core :as rf]
    [taoensso.sente :as sente]
-   [utils :as utils]
-   [clojure.set :as set]))
+   [utils :as utils]))
 
 (rf/reg-fx
  :round/start
- (fn [{rid :rid :as payload}]
+ (fn [{_rid :rid :as payload}]
    ((:send-fn ws/client-chsk)
     [:round/start payload]
     1000
@@ -19,7 +19,7 @@
 
 (rf/reg-fx
  :round/end
- (fn [{rid :rid :as payload}]
+ (fn [{_rid :rid :as payload}]
    ((:send-fn ws/client-chsk)
     [:round/end payload]
     1000

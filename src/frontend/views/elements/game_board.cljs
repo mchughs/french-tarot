@@ -1,7 +1,7 @@
 (ns frontend.views.elements.game-board
   (:require [re-frame.core :as rf]
             [reagent.core :as r]
-            [frontend.round :as round]
+            [frontend.controllers.round :as round]
             [format :as fmt]
             [frontend.views.elements.player-list :as player-list] ;; TODO will replace eventually
             ))

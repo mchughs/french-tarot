@@ -32,8 +32,8 @@
   [{uid :uid}]
   (let [{rid :rid :as new-room} (room/create uid)]
     (swap! registered-rooms assoc rid new-room)
-    (broadcast! [:room/enter {:rid rid}] #{uid})
-    (broadcast! [:room/register {:rid rid :user-id uid}])))
+    (broadcast! [:frontend.controllers.room/enter {:rid rid}] #{uid})
+    (broadcast! [:frontend.controllers.room/register {:rid rid :user-id uid}])))
 
 (defmethod event-msg-handler :room/join
   [{f :?reply-fn ?data :?data uid :uid}]
@@ -43,7 +43,7 @@
         (let [new-room (room/add-player (get @registered-rooms rid)
                                         uid)]
           (swap! registered-rooms assoc rid new-room) ;; idempotent operation.
-          (broadcast! [:room/update {:rid rid :connected-players (:players new-room)}])
+          (broadcast! [:frontend.controllers.room/update {:rid rid :connected-players (:players new-room)}])
           (f :chsk/success))
         (f :chsk/error)))))
 
@@ -59,8 +59,8 @@
             (swap! registered-rooms dissoc rid)) ;; drop the room from the registry if there are no more players. 
           (let [{:keys [players host]} room
                 leaving-players (if (= host uid) players #{uid})]
-            (broadcast! [:room/exit {}] leaving-players))          
-          (broadcast! [:room/update {:rid rid :connected-players (:players new-room)}])          
+            (broadcast! [:frontend.controllers.room/exit {}] leaving-players))          
+          (broadcast! [:frontend.controllers.room/update {:rid rid :connected-players (:players new-room)}])          
           (f :chsk/success))
         (f :chsk/error)))))
 
@@ -76,7 +76,7 @@
       (if (and room host? (= 4 (count players)) (not closed?)) ;; The room exists, is full, the game request was initiated by the host, and the game isn't already started. 
         (do
           (swap! registered-rooms update rid assoc :closed? true)
-          (broadcast! [:room/close {:rid rid}])
+          (broadcast! [:frontend.controllers.room/close {:rid rid}])
           (f :chsk/success))
         (f :chsk/error)))))
 
