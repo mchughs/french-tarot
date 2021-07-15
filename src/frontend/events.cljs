@@ -13,7 +13,7 @@
  ::set-uid
  [(rf/inject-cofx ::cookies/uid)]
  (fn [{db :db stored-uid :cookie/uid} [_ uid]]
-   (if stored-uid
+   (if false #_stored-uid ;; TODO just makes it easier to develop 
      {:db (assoc db :user/id stored-uid)}
      {:db (assoc db :user/id uid)
       ::cookies/set-uid uid})))
@@ -44,6 +44,11 @@
    (if (empty? connected-players)
      (update db :rooms dissoc rid) ;; If there are no more players in the room, delete it.
      (assoc-in db [:rooms rid :players] connected-players))))
+
+(rf/reg-event-db
+ :room/close
+ (fn [db [_ {rid :rid}]]
+   (update db :rooms update rid assoc :closed? true)))
 
 (rf/reg-fx
  ::to-homepage

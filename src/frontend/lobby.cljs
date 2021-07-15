@@ -69,3 +69,24 @@
  ::uid
  (fn [db _]
    (get db :user/id)))
+
+(rf/reg-fx
+ :game/start
+ (fn [rid]
+   ((:send-fn ws/client-chsk)
+    [:game/start {:rid rid}]
+    1000
+    (fn [reply]
+      (if (sente/cb-success? reply)
+        (rf/dispatch [::startable])
+        (js/alert (str "Oops, you have a problem starting the game for room #" rid "...")))))))
+
+(rf/reg-event-fx
+ ::start
+ (fn [_ [_ rid]]
+   {:game/start rid}))
+
+(rf/reg-event-db
+ ::startable
+ (fn [db _]
+   (assoc db :round/startable true)))

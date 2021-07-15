@@ -25,7 +25,7 @@
              [:span.sr-only "Join Game Button"]]]]
           [:tbody
            (->> @rooms
-                (map (fn [[rid {connected-players :players host :host}]]
+                (map (fn [[rid {connected-players :players host :host closed? :closed?}]]
                        ^{:key (gensym)}
                        [:tr.bg-white
                         [:td.px-6.py-4.whitespace-nowrap.text-sm.text-gray-500
@@ -33,12 +33,16 @@
                         [:td.px-6.py-4.whitespace-nowrap.text-sm.text-gray-500
                          (str (count connected-players) "/4")]
                         [:td.px-6.py-4.whitespace-nowrap.text-left.text-sm.font-medium
-                         [:button {:class (when (= committed-room rid) "blue")
+                         [:button {:class (when (or (= committed-room rid) closed?)
+                                            "blue")
                                    :disabled (<= 4 (count connected-players))
                                    :on-click #(rf/dispatch [::lobby/join rid])}
-                          (if (= committed-room rid)
-                            "Return"
-                            "Join!")]]]))
+                          (cond closed?
+                                "In Progress"
+                                (= committed-room rid)
+                                "Return"
+                                :else
+                                "Join!")]]]))
                 doall)]]]
         (when-not
          (pos? (count @rooms))

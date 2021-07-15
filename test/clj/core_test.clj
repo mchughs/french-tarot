@@ -49,5 +49,5 @@
   (is (m/validate s.round/Bid confident-bid)))
 
 (deftest shuffle-test
-  (is (= 78 (count shuffled-deck)))
-  (is (not= s.cards/Deck shuffled-deck)))
+  (is (= 78 (count (shuffled-deck))))
+  (is (not= s.cards/Deck (shuffled-deck))))

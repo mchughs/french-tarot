@@ -14,7 +14,7 @@
                       player.data/player-three
                       player.data/player-four}
                     #uuid "e7f42d75-23c6-4c55-b4de-95bb3c8e65e7"
-                    sut/shuffled-deck)
+                    (sut/shuffled-deck))
           player-hands (map :hand players)]
       (is (m/validate s.cards/Dog dog))
       (is (every? #(m/validate s.player/Player %) players))

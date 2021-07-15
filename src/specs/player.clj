@@ -6,7 +6,7 @@
   [:map [:id :uuid]
         [:name string?]
         [:score int?]
-        [:position [:int {:min 0 :max 4}]]
+        [:position [:int {:min 0 :max 3}]]
         [:hand Hand]])
 
 (def Defenders

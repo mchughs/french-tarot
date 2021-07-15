@@ -5,7 +5,7 @@
    [utils :as utils]))
 
 (defonce virgin-deck (edn/read-string (slurp (io/resource "data/deck.edn"))))
-(defonce shuffled-deck (shuffle virgin-deck))
+(defn shuffled-deck [] (shuffle virgin-deck))
 
 (def player-count 4)
 (def dog-card-locations #{6 19 32 45 58 71})
