@@ -17,7 +17,7 @@
         (not @room)
         [:div "Sorry, we couldn't find a room with ID:" rid]
 
-        (:closed? @room)
+        (not= :pre-game (:game-status @room))
         [game-board/component rid @uid @room]
 
         :else

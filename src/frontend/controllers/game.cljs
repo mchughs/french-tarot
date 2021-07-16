@@ -4,12 +4,6 @@
    [re-frame.core :as rf]
    [taoensso.sente :as sente]))
 
-;; TODO needs to be changed
-(rf/reg-event-db
- :startable-fx
- (fn [db _]
-   (assoc db :round/startable true)))
-
 (rf/reg-fx
  :game-start-fx
  (fn [rid]
@@ -18,7 +12,7 @@
     1000
     (fn [reply]
       (if (sente/cb-success? reply)
-        (rf/dispatch [:startable-fx])
+        (js/console.log "Success, game started. Room is now closed.")
         (js/alert (str "Oops, you have a problem starting the game for room #" rid "...")))))))
 
 (rf/reg-event-fx

@@ -5,7 +5,7 @@
 
 (defn create [uid]
   (let [rid (uuid/v4)]
-    {:rid rid :host uid :players #{uid}}))
+    {:rid rid :host uid :players #{uid} :game-status :pre-game}))
 
 (defn can-join?
   "The user can join if

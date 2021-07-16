@@ -80,3 +80,16 @@
                        :id)
         next-round (deck/deal players dealer-id deck)]
     (conj round-history next-round)))
+
+(defn can-start?
+  "The round can start when...
+   1. the room exists,
+   2. the room is full,
+   3. the request to start is coming from the host,
+   4. the game is in the :in-progress state,
+   5. TODO all players have marked they are ready." ;; TODO
+  [{:keys [players host game-status] :as room} uid]
+  (and room
+       (= 4 (count players))
+       (= uid host)
+       (= game-status :in-progress)))

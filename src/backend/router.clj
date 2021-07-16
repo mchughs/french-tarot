@@ -1,5 +1,6 @@
 (ns backend.router
   (:require
+   [backend.models.game :as game]
    [backend.models.room :as room]
    [backend.models.round :as round]
    [backend.routes.ws :as ws]
@@ -43,7 +44,7 @@
         (let [new-room (room/add-player (get @registered-rooms rid)
                                         uid)]
           (swap! registered-rooms assoc rid new-room) ;; idempotent operation.
-          (broadcast! [:frontend.controllers.room/update {:rid rid :connected-players (:players new-room)}])
+          (broadcast! [:frontend.controllers.room/update {:rid rid :room new-room}])
           (f :chsk/success))
         (f :chsk/error)))))
 
@@ -60,23 +61,19 @@
           (let [{:keys [players host]} room
                 leaving-players (if (= host uid) players #{uid})]
             (broadcast! [:frontend.controllers.room/exit {}] leaving-players))          
-          (broadcast! [:frontend.controllers.room/update {:rid rid :connected-players (:players new-room)}])          
+          (broadcast! [:frontend.controllers.room/update {:rid rid :room new-room}])          
           (f :chsk/success))
         (f :chsk/error)))))
 
 (defmethod event-msg-handler :game/start
   [{f :?reply-fn data :?data uid :uid}]
   (let [{rid :rid} data
-        {players :players
-         host :host
-         closed? :closed?
-         :as room} (get @registered-rooms rid)
-        host? (= uid host)]
-    (when f 
-      (if (and room host? (= 4 (count players)) (not closed?)) ;; The room exists, is full, the game request was initiated by the host, and the game isn't already started. 
-        (do
-          (swap! registered-rooms update rid assoc :closed? true)
-          (broadcast! [:frontend.controllers.room/close {:rid rid}])
+        room (get @registered-rooms rid)]
+    (when f
+     (if (game/can-start? room uid)
+        (let [new-room (assoc room :game-status :in-progress)]
+          (swap! registered-rooms assoc rid new-room)
+          (broadcast! [:frontend.controllers.room/update {:rid rid :room new-room}])
           (f :chsk/success))
         (f :chsk/error)))))
 
@@ -87,24 +84,33 @@
     (broadcast! event [uid])))
 
 (defmethod event-msg-handler :round/start
-  [{f :?reply-fn data :?data uid :uid}]
-  (let [{rid :rid} data
-        {:keys [players host closed? round-history] :as room} (get @registered-rooms rid)
-        host? (= uid host)]
-    (when f      
-      (if (and room host? (= 4 (count players)) closed?)
+  [{f :?reply-fn ?data :?data uid :uid}]
+  (let [{rid :rid} ?data
+        {:keys [players round-history] :as room} (get @registered-rooms rid)]
+    (when f
+      (if (round/can-start? room uid)
         (let [new-round-history (if (empty? round-history)
                                   (round/init-history players)
-                                  (round/add-next round-history))]
-          (swap! registered-rooms update rid assoc :round-history new-round-history)
+                                  (round/add-next round-history))
+              new-room (assoc room :game-status :playing-round)]
+          ;; round-history data should not be exposed to players as it contains information that should be hidden
+          (swap! registered-rooms assoc rid (assoc new-room :round-history new-round-history))
           (broadcast-round! (last new-round-history))
+          (broadcast! [:frontend.controllers.room/update {:rid rid :room new-room}])
           (f :chsk/success))
         (f :chsk/error)))))
 
 (defmethod event-msg-handler :round/end
-  [{f :?reply-fn}] ;; TODO
-  (when f
-    (f :chsk/success)))
+  [{f :?reply-fn ?data :?data}]
+  (let [{rid :rid} ?data
+        {:keys [game-status] :as room} (get @registered-rooms rid)]
+    (when f
+      (if (= :playing-round game-status)
+        (let [new-room (assoc room :game-status :in-progress)]
+          (swap! registered-rooms assoc rid new-room)
+          (broadcast! [:frontend.controllers.room/update {:rid rid :room new-room}])
+          (f :chsk/success))
+        (f :chsk/error)))))
 
 (defmethod event-msg-handler :room/get-ids
   [{f :?reply-fn}]

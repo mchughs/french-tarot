@@ -26,8 +26,9 @@
              [:span.sr-only "Join Game Button"]]]]
           [:tbody
            (->> @rooms
-                (map (fn [[rid {connected-players :players host :host closed? :closed?}]]
-                       (let [participant? (= user-room rid)]
+                (map (fn [[rid {connected-players :players host :host game-status :game-status}]]
+                       (let [participant? (= user-room rid)
+                             in-progress? (= :in-progress game-status)]
                          ^{:key (gensym)}
                          [:tr.bg-white
                           [:td.px-6.py-4.whitespace-nowrap.text-sm.text-gray-500
@@ -35,13 +36,13 @@
                           [:td.px-6.py-4.whitespace-nowrap.text-sm.text-gray-500
                            (str (count connected-players) "/4")]
                           [:td.px-6.py-4.whitespace-nowrap.text-left.text-sm.font-medium
-                           [:button {:class (when (or (= user-room rid) closed?)
+                           [:button {:class (when (or (= user-room rid) in-progress?)
                                               "blue")
                                      :disabled (and (<= 4 (count connected-players)) 
                                                     ;; TODO fix socket event failing to let participating players in.
                                                     (not participant?)) ;; let participating players use the "Return" button
                                      :on-click #(rf/dispatch [::room/join rid])}
-                            (cond closed? "In Progress"
+                            (cond in-progress? "In Progress"
                                   participant? "Return"
                                   :else "Join!")]]])))
                 doall)]]]

@@ -31,14 +31,7 @@
 (rf/reg-event-db
  :round/deal
  (fn [db [_ player-data]]
-   (-> db
-       (assoc :player player-data)
-       (assoc :round/startable false))))
-
-(rf/reg-sub
- ::startable?
- (fn [db _]
-   (:round/startable db)))
+   (assoc db :player player-data)))
 
 (rf/reg-sub
  ::hand
@@ -52,9 +45,8 @@
 
 (rf/reg-event-fx
  ::end
- (fn [{db :db} [_ rid]]
-   {:db (assoc db :round/startable true) ;; TODO should go at the end once reply is successful and all players have readied up
-    :round/end {:rid rid}}))
+ (fn [_ [_ rid]]
+   {:round/end {:rid rid}}))
 
 (defn sort-hand [hand]
   (let [sorted-ish (->> hand

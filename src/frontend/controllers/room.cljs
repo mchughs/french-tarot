@@ -27,15 +27,10 @@
 
 (rf/reg-event-db
  ::update
- (fn [db [_ {rid :rid connected-players :connected-players}]]
-   (if (empty? connected-players)
-     (update db :rooms dissoc rid) ;; If there are no more players in the room, delete it.
-     (assoc-in db [:rooms rid :players] connected-players))))
-
-(rf/reg-event-db
- ::close
- (fn [db [_ {rid :rid}]]
-   (update db :rooms update rid assoc :closed? true)))
+ (fn [db [_ {rid :rid room :room}]]
+   (if room 
+     (update db :rooms assoc rid room)
+     (update db :rooms dissoc rid)))) ;; If there are no more players in the room, delete it.
 
 (rf/reg-event-fx
  ::enter
