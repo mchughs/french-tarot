@@ -23,3 +23,6 @@
                  ; {:type :bonus/single-handful :value 20}
                  ; {:type :bonus/double-handful :value 40}
                  ; {:type :bonus/triple-handful :value 60}}]])
+
+(def Phase
+  [:enum :bidding :announcements :dog-construction :trick-taking :scoring :end])

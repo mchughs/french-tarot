@@ -10,6 +10,7 @@
    (get db :user/id)))
 
 ;; Returns the rid for the room the player is in, if any.
+;; TODO use cookies to save and make access quicker, or place the rid directly in the db
 (rf/reg-sub
  ::room
  :<- [::room/rooms]

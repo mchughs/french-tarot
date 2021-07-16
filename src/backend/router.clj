@@ -79,7 +79,8 @@
 
 (defn- broadcast-round! [round]
   (doseq [player (:players round)
-          :let [event [:round/deal player]
+          :let [round-log (:round-log round)
+                event [:round/deal {:player-data player :round-log round-log}]
                 uid (:id player)]]
     (broadcast! event [uid])))
 
@@ -109,6 +110,18 @@
         (let [new-room (assoc room :game-status :in-progress)]
           (swap! registered-rooms assoc rid new-room)
           (broadcast! [:frontend.controllers.room/update {:rid rid :room new-room}])
+          (f :chsk/success))
+        (f :chsk/error)))))
+
+(defmethod event-msg-handler :round/place-bid
+  [{f :?reply-fn ?data :?data uid :uid}]
+  (let [{rid :rid bid :bid} ?data
+        {:keys [game-status round-history] :as room} (get @registered-rooms rid)]
+    (when f
+      (if (= :playing-round game-status)
+        (let [new-round-history (round/place-bid round-history bid uid)]
+          (swap! registered-rooms assoc rid (assoc room :round-history new-round-history))
+          (broadcast-round! (last new-round-history))
           (f :chsk/success))
         (f :chsk/error)))))
 

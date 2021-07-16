@@ -57,9 +57,17 @@
   "Builds the first round."
   [player-ids]
   (let [players (map-indexed (partial init-player @ws/*player-map) player-ids)
-        first-round (deck/deal players
-                               (:id (first players))
-                               (deck/shuffled-deck))]
+        first-round (assoc (deck/deal players
+                                      (:id (first players))
+                                      (deck/shuffled-deck))
+                           :round-log [{:phase :bidding
+                                        :dealer-turn 0
+                                        :player-turn 1
+                                        :highest-bid {}
+                                        :available-bids [:bid/petit
+                                                         :bid/garde
+                                                         :bid/garde-sans
+                                                         :bid/garde-contre]}])]
     [first-round]))
 
 (defn add-next
@@ -93,3 +101,46 @@
        (= 4 (count players))
        (= uid host)
        (= game-status :in-progress)))
+
+(defn place-bid
+  [round-history bid uid]
+  (let [logs (:round-log (last round-history))
+        {:keys [highest-bid
+                dealer-turn
+                player-turn
+                available-bids]} (last logs)
+        passing? (= :pass bid)
+        any-prior-takers? (not (empty? highest-bid))
+        final-bidder? (= (count logs) 4)
+        new-log (cond
+                  ;; Playing it out.
+                  (and final-bidder? any-prior-takers?)
+                  {:phase :announcements
+                   :dealer-turn dealer-turn
+                   :player-turn (mod (inc player-turn) 4)
+                   :highest-bid (if passing? highest-bid {:player uid :bid bid})}
+
+                  ;; Everyone passed.
+                  (and final-bidder? passing?)
+                  {:phase :end
+                   :dealer-turn dealer-turn}
+
+                  ;; User is bidding
+                  (not passing?)
+                  {:phase :bidding
+                   :dealer-turn dealer-turn
+                   :player-turn (mod (inc player-turn) 4)
+                   :highest-bid {:player uid :bid bid}
+                   :available-bids (last (split-at (inc (.indexOf available-bids bid)) available-bids))}
+
+                  ;; User is passing.
+                  :else
+                  {:phase :bidding
+                   :dealer-turn dealer-turn
+                   :player-turn (mod (inc player-turn) 4)
+                   :highest-bid highest-bid
+                   :available-bids available-bids})]
+    (conj (pop round-history)
+          (assoc (peek round-history)
+                 :round-log                 
+                 (conj logs new-log)))))  

@@ -30,8 +30,10 @@
 
 (rf/reg-event-db
  :round/deal
- (fn [db [_ player-data]]
-   (assoc db :player player-data)))
+ (fn [db [_ {:keys [player-data round-log]}]]
+   (-> db
+       (assoc :player player-data)
+       (assoc :round-log round-log))))
 
 (rf/reg-sub
  ::hand
@@ -58,6 +60,54 @@
                 diamonds
                 trumps]} (set/rename-keys sorted-ish {nil :trumps})]
     (concat spades hearts clubs diamonds trumps)))
+
+(rf/reg-sub
+ ::last-log
+ (fn [db _]
+   (-> db
+       (get :round-log)
+       last)))
+
+(rf/reg-sub
+ ::phase
+ :<- [::last-log]
+ (fn [last-log _]
+   (get last-log :phase)))
+
+(rf/reg-sub
+ ::player-data
+ (fn [db _]
+   (get db :player)))
+
+(rf/reg-sub
+ ::user-turn?
+ :<- [::last-log]
+ :<- [::player-data]
+ (fn [[last-log player-data] _]
+   (= (:player-turn last-log)
+      (:position player-data))))
+
+(rf/reg-sub
+ ::available-bids
+ :<- [::last-log]
+ (fn [last-log _]
+   (get last-log :available-bids)))
+
+(rf/reg-fx
+ :round/place-bid
+ (fn [payload]
+   ((:send-fn ws/client-chsk)
+    [:round/place-bid payload]
+    1000
+    (fn [reply]
+      (if (sente/cb-success? reply)
+        (js/console.log "Success: placed-bid")
+        (js/alert (str "Oops, you have a problem placing the bid " reply "...")))))))
+
+(rf/reg-event-fx
+ ::place-bid
+ (fn [_ [_ rid bid]]
+   {:round/place-bid {:bid bid :rid rid}}))
 
 (comment
   (def round

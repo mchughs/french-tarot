@@ -4,7 +4,7 @@
             [frontend.controllers.round :as round]
             [format :as fmt]
             [frontend.views.elements.player-list :as player-list] ;; TODO will replace eventually
-            ))
+            [frontend.views.elements.bid-menu :as bid-menu]))
 
 (def example-hand
   #{{:type :pip, :value 8, :points 0.5, :suit :spades}
@@ -28,8 +28,16 @@
 
 (defn component
   [rid uid {:keys [host players game-status] :as room}]
-  (r/with-let [hand #_(r/atom example-hand) (rf/subscribe [::round/hand])]
+  (r/with-let [hand #_(r/atom example-hand) (rf/subscribe [::round/hand])
+               phase (rf/subscribe [::round/phase])
+               user-turn? (rf/subscribe [::round/user-turn?])
+               available-bids (rf/subscribe [::round/available-bids])]
     [:div "game board"
+     [:div "Round phase:" @phase]
+     (when (and @user-turn?
+                (= :bidding @phase)
+                @available-bids)
+       [bid-menu/component @available-bids])
      (when @hand
        [:ul.flex.flex-row.max-w-screen-lg.w-full.flex-wrap
         (->> @hand
