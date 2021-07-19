@@ -2,6 +2,7 @@
   (:require
    [backend.models.deck :as deck]
    [backend.routes.ws :as ws]
+   [clojure.set :as set]
    [utils :as utils]))
 
 (def point-threshold
@@ -75,7 +76,8 @@
    WARNING `round-history` needs to be a vector for conj to work properly."
   [round-history]
   (let [round-number (count round-history)
-        {:keys [players dog defenders taker]} (last round-history)
+        {:keys [players dog round-log]} (last round-history)
+        {:keys [defenders taker]} (last round-log) ;; TODO do an integrity check to see that the last log is phase :over
         deck (if (and defenders taker) ;; TODO do an integrity check on the deck so that each card is unique and there are 78
                (concat (:pile defenders) (:pile taker)) ;; the last round was played out
                (->> players ;; everyone passed on the last round
@@ -86,7 +88,15 @@
         dealer-id (->> players
                        (utils/find-first #(= dealer-idx (:position %)))
                        :id)
-        next-round (deck/deal players dealer-id deck)]
+        next-round (assoc (deck/deal players dealer-id deck)
+                          :round-log [{:phase :bidding
+                                       :dealer-turn dealer-idx
+                                       :player-turn (mod (inc dealer-idx) 4)
+                                       :highest-bid {}
+                                       :available-bids [:bid/petit
+                                                        :bid/garde
+                                                        :bid/garde-sans
+                                                        :bid/garde-contre]}])]
     (conj round-history next-round)))
 
 (defn can-start?
@@ -115,10 +125,21 @@
         new-log (cond
                   ;; Playing it out.
                   (and final-bidder? any-prior-takers?)
-                  {:phase :announcements
-                   :dealer-turn dealer-turn
-                   :player-turn (mod (inc player-turn) 4)
-                   :highest-bid (if passing? highest-bid {:player uid :bid bid})}
+                  (let [players (:players (last round-history))
+                        taker-player (utils/find-first
+                                      #(= (if passing?
+                                            (:player-id highest-bid)
+                                            uid)
+                                          (:id %))
+                                      players)]
+                    {:phase :announcements
+                     :taker {:player (dissoc taker-player :hand) ;; TODO, shouldn't be public. should probably be encrypted and then maybe decrypted later.
+                             :bid (if passing? (:bid highest-bid) bid)}
+                     :defenders {:members (->> players
+                                               (remove #(= (:id taker-player) (:id %)))
+                                               (mapv #(dissoc % :hand)))}
+                     :dealer-turn dealer-turn
+                     :player-turn (mod (inc player-turn) 4)})
 
                   ;; Everyone passed.
                   (and final-bidder? passing?)
@@ -130,7 +151,7 @@
                   {:phase :bidding
                    :dealer-turn dealer-turn
                    :player-turn (mod (inc player-turn) 4)
-                   :highest-bid {:player uid :bid bid}
+                   :highest-bid {:player-id uid :bid bid}
                    :available-bids (last (split-at (inc (.indexOf available-bids bid)) available-bids))}
 
                   ;; User is passing.
@@ -143,4 +164,68 @@
     (conj (pop round-history)
           (assoc (peek round-history)
                  :round-log                 
-                 (conj logs new-log)))))  
+                 (conj logs new-log)))))
+
+(defn- make-dog [log dog]
+  (let [last-player? (= 4 (count (:announcements log)))]
+    (if-not last-player?
+      log
+      (case (get-in log [:taker :bid])
+        :bid/petit
+        (-> log
+            (assoc :phase :dog-construction)
+            (assoc :dog dog))
+        :bid/garde
+        (-> log
+            (assoc :phase :dog-construction)
+            (assoc :dog dog))
+        :bid/garde-sans
+        (-> log
+            (assoc :phase :trick-taking)
+            (assoc-in [:taker :pile] dog))
+        :bid/garde-contre
+        (-> log
+            (assoc :phase :trick-taking)
+            (assoc-in [:defenders :pile] dog))))))
+
+(defn make-announcement
+  [round-history announcement uid]
+  (let [{logs :round-log dog :dog :as round} (last round-history)
+        new-log (-> (last logs)
+                    (update :announcements assoc uid announcement)
+                    (make-dog dog))]
+    (if (= :dog-construction (:phase new-log))
+      (let [taker (utils/find-first #(= (get-in new-log [:taker :player :id])
+                                        (:id %))
+                                    (:players round))
+            taker-idx (.indexOf (:players round) taker)]        
+        (conj (pop round-history)
+              (-> (peek round-history)
+                  (assoc :round-log (conj logs new-log))
+                  (update :players vec) ;; needs to be vector
+                  (update-in [:players taker-idx]
+                             (fn [taker]                               
+                               (update taker :hand set/union dog))))))
+      (conj (pop round-history)
+              (-> (peek round-history)
+                  (assoc :round-log (conj logs new-log)))))))
+
+(defn init-dog
+  [round-history init-taker-pile]
+  (let [round (last round-history)
+        logs (:round-log round)
+        last-log (last logs)
+        new-log (-> last-log
+                    (assoc-in [:taker :pile] init-taker-pile)
+                    (assoc :phase :trick-taking))
+        taker (utils/find-first #(= (get-in new-log [:taker :player :id])
+                                    (:id %))
+                                (:players round))
+        taker-idx (.indexOf (:players round) taker)]
+    (conj (pop round-history)
+          (-> (peek round-history)
+              (assoc :round-log (conj logs new-log))
+              (update :players vec) ;; needs to be vector
+              (update-in [:players taker-idx]
+                         (fn [taker]
+                           (update taker :hand set/difference init-taker-pile)))))))

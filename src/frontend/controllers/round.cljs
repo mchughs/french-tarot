@@ -1,9 +1,10 @@
 (ns frontend.controllers.round
   (:require
    [clojure.set :as set]
+   [frontend.controllers.user :as user]
    [frontend.websockets.core :as ws]
    [re-frame.core :as rf]
-   [taoensso.sente :as sente]
+   [taoensso.sente :as sente]   
    [utils :as utils]))
 
 (rf/reg-fx
@@ -108,6 +109,65 @@
  ::place-bid
  (fn [_ [_ rid bid]]
    {:round/place-bid {:bid bid :rid rid}}))
+
+(rf/reg-fx
+ :round/make-announcement
+ (fn [payload]
+   ((:send-fn ws/client-chsk)
+    [:round/make-announcement payload]
+    1000
+    (fn [reply]
+      (if (sente/cb-success? reply)
+        (js/console.log "Success: made announcement")
+        (js/alert (str "Oops, you have a problem making the announcement " reply "...")))))))
+
+(rf/reg-event-fx
+ ::make-announcement
+ (fn [_ [_ {_announcement :announcement _rid :rid :as payload}]]
+   {:round/make-announcement payload}))
+
+(rf/reg-sub
+ ::made-announcement?
+ :<- [::last-log]
+ :<- [::user/id]
+ (fn [[last-log uid] _]
+   (contains? (:announcements last-log)
+              uid)))
+
+(rf/reg-event-db
+ ::start-trick-taking
+ (fn [db _]
+   (dissoc db :init-taker-pile)))
+
+(rf/reg-fx
+ :round/submit-dog
+ (fn [payload]
+   ((:send-fn ws/client-chsk)
+    [:round/submit-dog payload]
+    1000
+    (fn [reply]
+      (if (sente/cb-success? reply)
+        (rf/dispatch [::start-trick-taking])
+        (js/alert (str "Oops, you have a problem making the submit-dog " reply "...")))))))
+
+(rf/reg-event-fx
+ ::submit-dog
+ (fn [{db :db} [_ {rid :rid}]]
+   {:round/submit-dog {:rid rid :init-taker-pile (:init-taker-pile db) }}))
+
+(rf/reg-sub
+ ::taker?
+ :<- [::last-log]
+ :<- [::user/id]
+ (fn [[last-log uid] _]
+   (= (get-in last-log [:taker :player :id])
+      uid)))
+
+(rf/reg-sub
+ ::taker-bid
+ :<- [::last-log]
+ (fn [last-log _]
+   (get-in last-log [:taker :bid])))
 
 (comment
   (def round

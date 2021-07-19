@@ -98,6 +98,8 @@
           (swap! registered-rooms assoc rid (assoc new-room :round-history new-round-history))
           (broadcast-round! (last new-round-history))
           (broadcast! [:frontend.controllers.room/update {:rid rid :room new-room}])
+          (broadcast! [:frontend.controllers.players/update
+                       (map #(dissoc % :hand) (:players (last new-round-history)))])
           (f :chsk/success))
         (f :chsk/error)))))
 
@@ -120,6 +122,41 @@
     (when f
       (if (= :playing-round game-status)
         (let [new-round-history (round/place-bid round-history bid uid)]
+          (swap! registered-rooms assoc rid (assoc room :round-history new-round-history))
+          (broadcast-round! (last new-round-history))
+          (f :chsk/success))
+        (f :chsk/error)))))
+
+(defmethod event-msg-handler :round/make-announcement
+  [{f :?reply-fn ?data :?data uid :uid}]
+  (let [{rid :rid announcement :announcement} ?data
+        {:keys [game-status round-history] :as room} (get @registered-rooms rid)
+        last-log (last (:round-log (last round-history)))]    
+    (when f
+      (if (and (= :playing-round game-status)
+               (= :announcements (:phase last-log)))
+        (let [new-round-history (round/make-announcement round-history announcement uid)]
+          ;; TODO piles should not be broadcast out
+          (when (= :dog-construction (:phase (last (:round-log (last new-round-history)))))            
+            (broadcast! [:frontend.controllers.room/update (last new-round-history)]))
+          (swap! registered-rooms assoc rid (assoc room :round-history new-round-history))
+          (broadcast-round! (last new-round-history))
+          (f :chsk/success))
+        (f :chsk/error)))))
+
+(defmethod event-msg-handler :round/submit-dog
+  [{f :?reply-fn ?data :?data uid :uid}]
+  (let [{rid :rid init-taker-pile :init-taker-pile} ?data
+        {:keys [game-status round-history] :as room} (get @registered-rooms rid)        
+        last-log (last (:round-log (last round-history)))]
+    (when f
+      (if (and (= :playing-round game-status)
+               (= :dog-construction (:phase last-log))
+               (= (get-in last-log [:taker :player :id]) uid)
+               (= 6 (count init-taker-pile)))
+        (let [new-round-history (round/init-dog round-history init-taker-pile)]
+          ;; TODO piles should not be broadcast out
+          (broadcast! [:frontend.controllers.room/update (last new-round-history)])
           (swap! registered-rooms assoc rid (assoc room :round-history new-round-history))
           (broadcast-round! (last new-round-history))
           (f :chsk/success))
