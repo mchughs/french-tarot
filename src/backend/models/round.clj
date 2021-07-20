@@ -1,5 +1,6 @@
 (ns backend.models.round
   (:require
+   [backend.models.cards :as cards]
    [backend.models.deck :as deck]
    [backend.routes.ws :as ws]
    [clojure.set :as set]
@@ -181,11 +182,11 @@
             (assoc :dog dog))
         :bid/garde-sans
         (-> log
-            (assoc :phase :trick-taking)
+            (assoc :phase :main)
             (assoc-in [:taker :pile] dog))
         :bid/garde-contre
         (-> log
-            (assoc :phase :trick-taking)
+            (assoc :phase :main)
             (assoc-in [:defenders :pile] dog))))))
 
 (defn make-announcement
@@ -217,7 +218,7 @@
         last-log (last logs)
         new-log (-> last-log
                     (assoc-in [:taker :pile] init-taker-pile)
-                    (assoc :phase :trick-taking))
+                    (assoc :phase :main))
         taker (utils/find-first #(= (get-in new-log [:taker :player :id])
                                     (:id %))
                                 (:players round))
@@ -229,3 +230,91 @@
               (update-in [:players taker-idx]
                          (fn [taker]
                            (update taker :hand set/difference init-taker-pile)))))))
+
+(defn user-turn?
+  [round-history uid]
+  (let [last-round (last round-history)
+        last-log (last (:round-log last-round))
+        turn (:player-turn last-log)
+        turn-uid (:id (utils/find-first #(= turn (:position %))
+                               (:players last-round)))]
+    (= turn-uid uid)))
+
+(defn play-card ;; TODO Excuse
+  [round-history card uid]
+  (let [last-round (last round-history)
+        logs (:round-log last-round)
+        {board :board :as last-log} (last logs)
+        player (utils/find-first #(= uid (:id %))
+                                 (:players last-round))
+        new-board (conj board {:play-order (count board)
+                               :uid uid
+                               :position (:position player)
+                               :card card})
+        new-log (if (= 4 (count new-board))
+                  (let [holder (cards/top-card new-board)
+                        holder-team (if (= (get-in last-log [:taker :player :id])
+                                           (:uid holder))
+                                      :taker
+                                      :defenders)]
+                    (-> last-log
+                        (assoc :board [])
+                        (update-in [holder-team :pile] concat (map :card new-board))
+                        (assoc :player-turn (:position holder))
+                        (assoc :phase (if (= 1 (count (:hand player))) ;; last trick
+                                        :scoring
+                                        :main))))
+                  (-> last-log
+                      (assoc :board new-board)
+                      (update :player-turn #(mod (inc %) 4))))]
+    (conj (pop round-history)
+          (-> (peek round-history)
+              (assoc :round-log (conj logs new-log))
+              (update :players
+                      (fn [players]
+                        (mapv #(if (= uid (:id %))
+                                 (update % :hand disj card)
+                                 %)
+                              players)))))))
+
+(defn allowed-card?
+  "Lets the player know if they are allowed to play their card given the context."
+  [round-history uid card]
+  (let [last-round (last round-history)
+        board (:board (last (:round-log last-round)))
+        hand (:hand (utils/find-first #(= uid (:id %))
+                                      (:players last-round)))
+        first-card (:card (first board))
+        obliged-suit (if (= :excuse (:type first-card))
+                       (:suit (:card (second board)))
+                       (:suit first-card))]
+    (or (= :excuse (:type card)) ;; Excuse can be played at anytime
+        (empty? board) ;; Opening card can be anything. ;; TODO on first turn there are some choices which are not allowed
+        (and (= :excuse (:type first-card)) ;; If the first card played is the excuse, the next card can be anything.
+             (= 1 (count board))) 
+        (= obliged-suit (:suit card)) ;; If the card matches the suit of the opening card then it's okay
+        (and (= :trump (:type card))
+             (empty? (filter #(= obliged-suit (:suit %)) hand))) ;; If the card doesn't match the suit but the player doesn't have a card of the same, then it's okay.
+        (and (empty? (filter #(= :trump (:type %)) hand)) ;; If the player doesn't have a matching suit or any trump cards then they can play anything.
+             (empty? (filter #(= obliged-suit (:suit %)) hand))))))
+
+(defn score [round-history] ;; TODO gotta fix
+  (let [last-round (last round-history)
+        logs (:round-log last-round)
+        last-log (last logs)
+        {:keys [taker defenders]} (calculate-scores (:taker last-log)
+                                                    (:defenders last-log))
+        new-log (-> last-log
+                    (assoc :phase :end)
+                    (update :dealer-turn #(mod (inc %) 4))
+                    (assoc :taker taker)
+                    (assoc :defenders defenders))]
+    (conj (pop round-history)
+          (-> (peek round-history)
+              (assoc :round-log (conj logs new-log))
+              (update :players
+                      (fn [players]
+                        (mapv #(let [uid (:id %)]
+                                 (prn "QWER" % taker defenders)
+                                 (update % :score + 10))
+                              players)))))))

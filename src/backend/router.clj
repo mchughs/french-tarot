@@ -162,6 +162,38 @@
           (f :chsk/success))
         (f :chsk/error)))))
 
+(defmethod event-msg-handler :card/play
+  [{f :?reply-fn ?data :?data uid :uid}]
+  (let [{rid :rid card :card} ?data
+        {:keys [game-status round-history] :as room} (get @registered-rooms rid)
+        last-log (last (:round-log (last round-history)))]
+    (when f
+      (if (and (= :playing-round game-status)
+               (= :main (:phase last-log))
+               (round/user-turn? round-history uid)
+               (round/allowed-card? round-history uid card))        
+        (let [new-round-history (round/play-card round-history card uid)]
+          (broadcast! [:frontend.controllers.room/update (last new-round-history)])
+          (swap! registered-rooms assoc rid (assoc room :round-history new-round-history))
+          (broadcast-round! (last new-round-history))
+          (f :chsk/success))
+        (f :chsk/error)))))
+
+(defmethod event-msg-handler :round/count
+  [{f :?reply-fn ?data :?data}]
+  (let [{rid :rid} ?data
+        {:keys [game-status round-history] :as room} (get @registered-rooms rid)
+        last-log (last (:round-log (last round-history)))]
+    (when f
+      (if (and (= :playing-round game-status)
+               (= :scoring (:phase last-log)))
+        (let [new-round-history (round/score round-history)]
+          (broadcast! [:frontend.controllers.room/update (last new-round-history)])
+          (swap! registered-rooms assoc rid (assoc room :round-history new-round-history))
+          (broadcast-round! (last new-round-history))
+          (f :chsk/success))
+        (f :chsk/error)))))
+
 (defmethod event-msg-handler :room/get-ids
   [{f :?reply-fn}]
   (when f

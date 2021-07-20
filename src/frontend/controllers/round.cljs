@@ -135,7 +135,7 @@
               uid)))
 
 (rf/reg-event-db
- ::start-trick-taking
+ ::start-main
  (fn [db _]
    (dissoc db :init-taker-pile)))
 
@@ -147,7 +147,7 @@
     1000
     (fn [reply]
       (if (sente/cb-success? reply)
-        (rf/dispatch [::start-trick-taking])
+        (rf/dispatch [::start-main])
         (js/alert (str "Oops, you have a problem making the submit-dog " reply "...")))))))
 
 (rf/reg-event-fx
@@ -169,6 +169,29 @@
  (fn [last-log _]
    (get-in last-log [:taker :bid])))
 
+(rf/reg-sub
+ ::board
+ :<- [::last-log]
+ (fn [last-log _]
+   (:board last-log)))
+
+(rf/reg-fx
+ :round/count
+ (fn [payload]
+   ((:send-fn ws/client-chsk)
+    [:round/count payload]
+    1000
+    (fn [reply]
+      (if (sente/cb-success? reply)
+        (js/console.log "Success: made round/count")
+        (js/alert (str "Oops, you have a problem making the round/count " reply "...")))))))
+
+(rf/reg-event-fx
+ ::count
+ (fn [_ [_ rid]]
+   {:round/count {:rid rid}}))
+
+
 (comment
   (def round
     {:dog
@@ -179,7 +202,7 @@
        {:type :trump, :value 18, :points 0.5, :ouder? false}
        {:type :pip, :value 8, :points 0.5, :suit :diamonds}}
      :players
-     ({:id "845ef68f-fd69-41e4-8ab0-57dda51f85c3"
+     '({:id "845ef68f-fd69-41e4-8ab0-57dda51f85c3"
        :name "Alice-430"
        :position 1
        :score 0

@@ -1,6 +1,8 @@
 (ns frontend.controllers.card
   (:require
-   [re-frame.core :as rf]))
+   [frontend.websockets.core :as ws]
+   [re-frame.core :as rf]
+   [taoensso.sente :as sente]))
 
 (defn can-set-aside? [{:keys [type name] :as _card}] ;; TODO technically you can set aside kings or trumps if you have no choice. Super unlikely to happen though.
   (or (= :pip type)
@@ -25,3 +27,19 @@
  ::init-taker-pile
  (fn [db _]
    (:init-taker-pile db)))
+
+(rf/reg-fx
+ :card/play
+ (fn [payload]
+   ((:send-fn ws/client-chsk)
+    [:card/play payload]
+    1000
+    (fn [reply]
+      (if (sente/cb-success? reply)
+        (js/console.log "Success, card/play.")
+        (js/alert (str "Oops, you have a problem card/play for room #" reply "...")))))))
+
+(rf/reg-event-fx
+ ::play
+ (fn [_ [_ rid card]]
+   {:card/play {:rid rid :card card}}))

@@ -25,4 +25,4 @@
                  ; {:type :bonus/triple-handful :value 60}}]])
 
 (def Phase
-  [:enum :bidding :announcements :dog-construction :trick-taking :scoring :end])
+  [:enum :bidding :announcements :dog-construction :main :scoring :end])
