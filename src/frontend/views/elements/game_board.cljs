@@ -16,13 +16,11 @@
 
 (defn component
   [rid uid {host :room/host
-            players :room/players
-            :as room}]
+            players :room/players}]
   (r/with-let [status (rf/subscribe [::game/status])
                phase (rf/subscribe [::log/phase])
                user-turn? (rf/subscribe [::log/user-turn?])
                available-bids (rf/subscribe [::log/available-bids])
-               #_#_player-order (rf/subscribe [::players/order])
                taker? (rf/subscribe [::log/taker?])
                taker-bid (rf/subscribe [::log/taker-bid])
                score (rf/subscribe [::players/score])
@@ -31,7 +29,7 @@
     [:div "game board"
      [:div "Round phase:" @phase]
      [:div "GAmes status " @status]
-     #_[:div "Player order " @player-order]
+     
     [:div "Taker's bid:" @taker-bid]
      (when @user-turn?
        [:div "Your turn dude."])
@@ -51,7 +49,7 @@
                     ^{:key (gensym)}
                     [:<>
                      [:div "ORDER: " play-order]                     
-                     [card-comp/component @phase @user-turn? card]]))
+                     [card-comp/component card]]))
              doall)])
 
      [dog/component]
@@ -74,7 +72,7 @@
         {:on-click #(rf/dispatch [::log/submit-dog])}
         "Submit Dog."])
 
-     [hand/component @phase @user-turn?]
+     [hand/component]
 
      [player-list/component uid host players]
 

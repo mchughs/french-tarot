@@ -6,7 +6,7 @@
    [re-frame.core :as rf]
    [reagent.core :as r]))
 
-(defn component [phase user-turn?]
+(defn component []
   (r/with-let [hand (rf/subscribe [::players/hand])]
     (when @hand
       [:ul.flex.flex-row.max-w-screen-lg.w-full.flex-wrap
@@ -14,5 +14,5 @@
             round/sort-cards
             (map (fn [card]
                    ^{:key (gensym)}
-                   [card/component phase user-turn? card]))
+                   [card/component card]))
             doall)])))

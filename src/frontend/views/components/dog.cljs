@@ -14,5 +14,5 @@
             round/sort-cards
             (map (fn [card]
                    ^{:key (gensym)}
-                   [card/component :TODO :TODO card]))
+                   [card/component card]))
             doall)])))

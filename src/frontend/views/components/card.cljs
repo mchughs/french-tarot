@@ -7,8 +7,10 @@
    [re-frame.core :as rf]
    [reagent.core :as r]))
 
-(defn component [phase user-turn? card]
-  (r/with-let [init-taker-pile (rf/subscribe [::card/init-taker-pile])
+(defn component [card]
+  (r/with-let [phase (rf/subscribe [::log/phase])
+               user-turn? (rf/subscribe [::log/user-turn?])
+               init-taker-pile (rf/subscribe [::card/init-taker-pile])
                taker? (rf/subscribe [::log/taker?])]
     [:li
      [:button {:class (when (contains? @init-taker-pile card) "blue")
@@ -26,7 +28,7 @@
                                (and (= :main phase)
                                     user-turn?)
                                #(rf/dispatch [::card/play card])
-                               
+
                                :else
                                #(js/console.log "TODO???"))}
       [:img {:src (fmt/fmt "http://localhost:5444/assets/images/cards/%s.jpg"

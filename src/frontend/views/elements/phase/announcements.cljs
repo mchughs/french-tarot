@@ -3,8 +3,7 @@
             [reagent.core :as r]
             [frontend.controllers.log :as log]))
 
-(defn component
-  [rid]
+(defn component []
   (r/with-let [made-announcement? (rf/subscribe [::log/made-announcement?])]
     (if @made-announcement?
       [:div "Waiting on other players..."]
