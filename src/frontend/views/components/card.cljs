@@ -16,17 +16,17 @@
      [:button {:class (when (contains? @init-taker-pile card) "blue")
                :disabled (and (<= 6 (count @init-taker-pile))
                               (not (contains? @init-taker-pile card)))
-               :on-click (cond (and (= :dog-construction phase)
+               :on-click (cond (and (= :dog-construction @phase)
                                     @taker?
                                     (contains? @init-taker-pile card))
                                #(rf/dispatch [::card/recover card])
 
-                               (and (= :dog-construction phase)
+                               (and (= :dog-construction @phase)
                                     @taker?)
                                #(rf/dispatch [::card/set-aside card])
 
-                               (and (= :main phase)
-                                    user-turn?)
+                               (and (= :main @phase)
+                                    @user-turn?)
                                #(rf/dispatch [::card/play card])
 
                                :else

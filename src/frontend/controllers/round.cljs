@@ -17,17 +17,6 @@
         (js/console.log "Success: started the round")
         (js/alert (str "Oops, you have a problem starting the round " reply "...")))))))
 
-(rf/reg-fx
- :round/end
- (fn [{_rid :rid :as payload}]
-   ((:send-fn ws/client-chsk)
-    [:round/end payload]
-    1000
-    (fn [reply]
-      (if (sente/cb-success? reply)
-        (js/console.log "Success: ended the round")
-        (js/alert (str "Oops, you have a problem ending the round " reply "...")))))))
-
 (rf/reg-event-db
  ::update
  (fn [db [_ round]]   
@@ -40,12 +29,6 @@
  (fn [{db :db} [_ rid]]
    {:round/start {:rid rid
                   :gid (get-in db [:game :game/id])}}))
-
-(rf/reg-event-fx
- ::end
- (fn [{db :db} _]
-   {:round/end {:log-id (get-in db [:curr/log :log/id])
-                :gid (get-in db [:game :game/id])}}))
 
 (defn sort-cards [cards]
   (let [sorted-ish (->> cards
