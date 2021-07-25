@@ -41,5 +41,6 @@
 
 (rf/reg-event-fx
  ::play
- (fn [_ [_ rid card]]
-   {:card/play {:rid rid :card card}}))
+ (fn [{db :db} [_ card]]
+   {:card/play {:log-id (get-in db [:curr/log :log/id])
+                :card card}}))

@@ -21,11 +21,6 @@
    (assoc db :rooms rooms)))
 
 (rf/reg-event-db
- ::register
- (fn [db [_ {rid :rid user-id :user-id}]]
-   (assoc-in db [:rooms rid] {:host user-id :players #{user-id}})))
-
-(rf/reg-event-db
  ::update
  (fn [db [_ {rid :rid room :room}]]
    (if room 

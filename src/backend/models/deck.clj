@@ -1,5 +1,6 @@
 (ns backend.models.deck
   (:require
+   [backend.db :as db]
    [clojure.edn :as edn]
    [clojure.java.io :as io]
    [utils :as utils]))
@@ -15,9 +16,25 @@
     (into [] (concat (subvec deck cut-point 78)
                      (subvec deck 0 cut-point)))))
 
-(defn deal
+(defn q-deck [round-id]
+  (:round/deck
+   (db/q1
+    '{:find (pull e [*])
+      :in [round-id]
+      :where [[e :round/id round-id]]}
+    round-id)))
+
+(defn q-players [gid]
+  (db/q '{:find [player-id position]
+          :in [gid]
+          :where [[player-id :player/game gid]
+                  [player-id :player/user-id players]
+                  [player-id :player/position position]]}
+        gid))
+
+(defn- divide-cards
   "Divides out cards between each player and the dog in a manner similar to the customary physical dealing process."
-  [players dealer-id deck]
+  [deck]
   (let [{dog-cards true
          player-cards false} (->> deck
                                   cut-deck
@@ -33,15 +50,16 @@
                    (utils/fmap #(->> %
                                      (map last)
                                      (apply concat)
-                                     set)))
-        dealer-position (:position (utils/find-first #(= dealer-id (:id %)) players))
-        deal-order [(mod (inc dealer-position) player-count)
-                    (mod (+ 2 dealer-position) player-count)
-                    (mod (+ 3 dealer-position) player-count)
-                    dealer-position]]
-    {:dog (set dog-cards)
-     :players (map-indexed
-               (fn [idx order]
-                 (let [player (utils/find-first #(= order (:position %)) players)]
-                   (assoc player :hand (set (get hands idx)))))
-               deal-order)}))
+                                     set)))]
+    {:hands hands
+     :dog (set dog-cards)}))
+
+(defn deal!
+  "Divides out cards between each player and the dog in a manner similar to the customary physical dealing process."
+  [gid round-id]
+  (let [deck (q-deck round-id)
+        players (q-players gid)         
+        {:keys [hands dog]} (divide-cards deck)]
+    (doseq [[player-id position] players]
+      (db/run-fx! ::deal player-id (get hands position)))
+    (db/run-fx! ::set-dog round-id dog)))

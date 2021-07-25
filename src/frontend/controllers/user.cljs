@@ -1,27 +1,39 @@
 (ns frontend.controllers.user
   "For all functions regarding the operating user. Not other users."
-  (:require [frontend.controllers.room :as room]
-            [re-frame.core :as rf]
-            [utils :as utils]))
+  (:require
+   [re-frame.core :as rf]))
 
 (rf/reg-sub
  ::id
  (fn [db _]
    (get db :user/id)))
 
-;; Returns the rid for the room the player is in, if any.
-;; TODO use cookies to save and make access quicker, or place the rid directly in the db
 (rf/reg-sub
- ::room
- :<- [::room/rooms]
- :<- [::id]
- (fn [[rooms uid] _]
-   (->> rooms
-        (utils/find-first (fn [[_rid {players :players}]]
-                            (contains? players uid)))
-        first)))
+ ::user
+ (fn [db _]
+   (let [uid (get db :user/id)]
+     (get-in db [:users uid]))))
 
 (rf/reg-sub
- ::name ;; Likely to change in implementation.
- (fn [db _]
-   (get (:player-map db) (:user/id db))))
+ ::room
+ :<- [::user]
+ (fn [user _]
+   (get user :user/room)))
+
+(rf/reg-sub
+ ::name
+ :<- [::user]
+ (fn [user _]
+   (get user :user/name)))
+
+(rf/reg-event-db
+ ::update
+ (fn [db [_ {uid :uid user :user}]]
+   (if user
+     (update db :users assoc uid user)
+     (update db :users dissoc uid))))
+
+(rf/reg-event-db
+ ::register-all
+ (fn [db [_ users]]
+   (assoc db :users users)))

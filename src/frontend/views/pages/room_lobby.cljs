@@ -17,14 +17,16 @@
         (not @room)
         [:div "Sorry, we couldn't find a room with ID:" rid]
 
-        (not= :pre-game (:game-status @room))
+        (= :closed (:room/status @room))
         [game-board/component rid @uid @room]
 
         :else
-        (let [{host :host players :players} @room
-              host? (= host @uid)
-              full? (= 4 (count players))
-              in?   (contains? players @uid)]
+        (let [{host    :room/host
+               players :room/players
+               status  :room/status} @room
+              host?    (= host @uid)
+              full?    (= :full status)
+              in?      (contains? players @uid)]
           [:div
            [:div.pt-4.font-medium.text-lg "Players:"]
            [:div.py-4

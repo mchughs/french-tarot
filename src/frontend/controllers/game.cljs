@@ -19,3 +19,13 @@
  ::start
  (fn [_ [_ rid]]
    {:game-start-fx rid}))
+
+(rf/reg-event-db
+ ::update
+ (fn [db [_ game]]
+   (assoc db :game game)))
+
+(rf/reg-sub
+ ::status
+ (fn [db _]
+   (get-in db [:game :game/status])))

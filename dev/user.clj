@@ -3,6 +3,7 @@
             [mount.core :as mount]
             [mount-up.core :as mu]
             backend.core
+            backend.db
             backend.router
             backend.routes.ws))
 

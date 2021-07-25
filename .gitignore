@@ -12,3 +12,4 @@ package.json
 .shadow-cljs
 /resources/public/js
 /resources/public/css/compiled/
+/data

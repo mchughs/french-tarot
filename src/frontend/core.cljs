@@ -38,7 +38,7 @@
    :chsk/open
    (fn [_key _atom old-state new-state]
      (when (and (not= old-state new-state) new-state)
-       (lobby/fetch-names!) ;; For illustrative purposes only
+       (lobby/fetch-users!)
        (lobby/fetch-rooms!)))))
 
 (defn init []

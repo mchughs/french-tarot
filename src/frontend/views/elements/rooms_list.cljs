@@ -26,9 +26,12 @@
              [:span.sr-only "Join Game Button"]]]]
           [:tbody
            (->> @rooms
-                (map (fn [[rid {connected-players :players host :host game-status :game-status}]]
+                (map (fn [[rid {connected-players :room/players
+                                host :room/host
+                                status :room/status}]]
                        (let [participant? (= user-room rid)
-                             in-progress? (= :in-progress game-status)]
+                             closed? (= :closed status)
+                             full? (= :full status)]
                          ^{:key (gensym)}
                          [:tr.bg-white
                           [:td.px-6.py-4.whitespace-nowrap.text-sm.text-gray-500
@@ -36,13 +39,15 @@
                           [:td.px-6.py-4.whitespace-nowrap.text-sm.text-gray-500
                            (str (count connected-players) "/4")]
                           [:td.px-6.py-4.whitespace-nowrap.text-left.text-sm.font-medium
-                           [:button {:class (when (or (= user-room rid) in-progress?)
+                           [:button {:class (when (or participant? closed?)
                                               "blue")
-                                     :disabled (and (<= 4 (count connected-players)) 
+                                     :disabled (and full?
                                                     ;; TODO fix socket event failing to let participating players in.
                                                     (not participant?)) ;; let participating players use the "Return" button
-                                     :on-click #(rf/dispatch [::room/join rid])}
-                            (cond in-progress? "In Progress"
+                                     :on-click (if (not participant?)
+                                                 #(rf/dispatch [::room/join rid])
+                                                 #(rf/dispatch [::room/enter {:rid rid}]))}
+                            (cond closed? "In Progress"
                                   participant? "Return"
                                   :else "Join!")]]])))
                 doall)]]]

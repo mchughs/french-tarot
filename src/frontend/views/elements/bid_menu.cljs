@@ -1,7 +1,6 @@
 (ns frontend.views.elements.bid-menu
   (:require
-   [frontend.controllers.round :as round]
-   [frontend.controllers.user :as user]
+   [frontend.controllers.log :as log]
    [re-frame.core :as rf]))
 
 (def bid-options
@@ -21,9 +20,7 @@
                                                    option))]
                  [:li
                   [:button {:on-click #(when available-bid?
-                                         (rf/dispatch [::round/place-bid
-                                                       @(rf/subscribe [::user/room]) ;; TODO should be accessed in the dispatch itself
-                                                       option]))
+                                         (rf/dispatch [::log/place-bid option]))
                             :disabled (not available-bid?)}
                    option]])))
         doall)])

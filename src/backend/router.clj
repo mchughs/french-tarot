@@ -1,8 +1,14 @@
 (ns backend.router
   (:require
+   [backend.db :as db]
+   [backend.models.cards :as cards]
+   [backend.models.deck :as deck]
    [backend.models.game :as game]
+   [backend.models.logs :as logs]
+   [backend.models.players :as players]
    [backend.models.room :as room]
    [backend.models.round :as round]
+   [backend.models.user :as user]
    [backend.routes.ws :as ws]
    [clojure.tools.logging :as log]
    [mount.core :refer [defstate]]
@@ -22,193 +28,230 @@
   (log/infof "Unhandled event: %s" id)
   #_(log/infof "With payload\n%s" (utils/pp-str payload)))
 
-(defmethod event-msg-handler :player-name/fetch
-  [_] ;; For illustrative purposes only
-  (broadcast! [:player-name/publish {:player-map @ws/*player-map}]))
-
-;; TODO better persistence
-(defonce registered-rooms (atom {}))
-
 (defmethod event-msg-handler :room/create
   [{uid :uid}]
-  (let [{rid :rid :as new-room} (room/create uid)]
-    (swap! registered-rooms assoc rid new-room)
-    (broadcast! [:frontend.controllers.room/enter {:rid rid}] #{uid})
-    (broadcast! [:frontend.controllers.room/register {:rid rid :user-id uid}])))
+  (let [{rid :room/id :as new-room} (room/create uid)]
+    (db/insert! rid new-room)
+    (user/host-room! uid rid)
+    (broadcast! [:frontend.controllers.room/enter
+                 {:rid rid}]
+                #{uid})
+    (broadcast! [:frontend.controllers.room/update
+                 {:rid rid
+                  :room new-room}])
+    (broadcast! [:frontend.controllers.user/update
+                 {:uid uid
+                  :user (user/get-user uid)}])))
+
+(defn- broadcast-room! [rid]
+  (broadcast! [:frontend.controllers.room/update
+               {:rid rid
+                :room (room/get-room rid)}]))
 
 (defmethod event-msg-handler :room/join
   [{f :?reply-fn ?data :?data uid :uid}]
   (let [{rid :rid} ?data]
     (when f
-      (if (room/can-join? @registered-rooms rid uid)
-        (let [new-room (room/add-player (get @registered-rooms rid)
-                                        uid)]
-          (swap! registered-rooms assoc rid new-room) ;; idempotent operation.
-          (broadcast! [:frontend.controllers.room/update {:rid rid :room new-room}])
+      (if (room/can-join? rid uid)
+        (do
+          (room/add-player! rid uid) ;; idempotent operation.
+          (user/join-room! uid rid)
+          (broadcast-room! rid)
+          (broadcast! [:frontend.controllers.user/update
+                       {:uid uid
+                        :user (user/get-user uid)}])
           (f :chsk/success))
         (f :chsk/error)))))
 
 (defmethod event-msg-handler :room/leave
   [{f :?reply-fn ?data :?data uid :uid}]
-  (let [{rid :rid} ?data
-        room (get @registered-rooms rid)]
+  (let [{rid :rid} ?data]
     (when f
-      (if (room/can-leave? @registered-rooms rid uid)
-        (let [new-room (room/remove-player room uid)] ;; removes all players if the host leaves
-          (if new-room
-            (swap! registered-rooms assoc rid new-room)
-            (swap! registered-rooms dissoc rid)) ;; drop the room from the registry if there are no more players. 
-          (let [{:keys [players host]} room
-                leaving-players (if (= host uid) players #{uid})]
-            (broadcast! [:frontend.controllers.room/exit {}] leaving-players))          
-          (broadcast! [:frontend.controllers.room/update {:rid rid :room new-room}])          
+      (if (room/can-leave? rid uid)
+        (let [leaving-players (room/remove-player! rid uid)]          
+          (doseq [user-id leaving-players]
+            (user/leave-room! user-id rid)
+            (broadcast! [:frontend.controllers.user/update
+                         {:uid user-id
+                          :user (user/get-user user-id)}]))
+          (broadcast! [:frontend.controllers.room/exit
+                       {}]
+                      leaving-players)
+          (broadcast-room! rid)
           (f :chsk/success))
         (f :chsk/error)))))
 
 (defmethod event-msg-handler :game/start
   [{f :?reply-fn data :?data uid :uid}]
-  (let [{rid :rid} data
-        room (get @registered-rooms rid)]
+  (let [{rid :rid} data]
     (when f
-     (if (game/can-start? room uid)
-        (let [new-room (assoc room :game-status :in-progress)]
-          (swap! registered-rooms assoc rid new-room)
-          (broadcast! [:frontend.controllers.room/update {:rid rid :room new-room}])
+     (if (game/can-start? rid uid)
+        (let [gid (game/create! rid)
+              uids (players/create! rid gid)]
+          (game/start! rid gid)
+          (broadcast-room! rid)          
+          (broadcast! [:frontend.controllers.game/update (game/get-game gid)]
+                      uids)
           (f :chsk/success))
         (f :chsk/error)))))
-
-(defn- broadcast-round! [round]
-  (doseq [player (:players round)
-          :let [round-log (:round-log round)
-                event [:round/deal {:player-data player :round-log round-log}]
-                uid (:id player)]]
-    (broadcast! event [uid])))
 
 (defmethod event-msg-handler :round/start
   [{f :?reply-fn ?data :?data uid :uid}]
-  (let [{rid :rid} ?data
-        {:keys [players round-history] :as room} (get @registered-rooms rid)]
+  (let [{rid :rid gid :gid} ?data]
     (when f
-      (if (round/can-start? room uid)
-        (let [new-round-history (if (empty? round-history)
-                                  (round/init-history players)
-                                  (round/add-next round-history))
-              new-room (assoc room :game-status :playing-round)]
-          ;; round-history data should not be exposed to players as it contains information that should be hidden
-          (swap! registered-rooms assoc rid (assoc new-room :round-history new-round-history))
-          (broadcast-round! (last new-round-history))
-          (broadcast! [:frontend.controllers.room/update {:rid rid :room new-room}])
-          (broadcast! [:frontend.controllers.players/update
-                       (map #(dissoc % :hand) (:players (last new-round-history)))])
+      (if (round/can-start? rid uid)
+        (let [log-id (logs/init-log!)
+              round-id (round/start! gid log-id)
+              uids (players/get-players gid)]
+          (deck/deal! gid round-id)
+          (game/begin-round! gid)
+          (broadcast! [:frontend.controllers.round/update (round/get-round round-id)]
+                      uids)          
+          (broadcast! [:frontend.controllers.game/update (game/get-game gid)]
+                      uids)          
+          (broadcast! [:frontend.controllers.log/update (logs/get-log log-id)]
+                      uids)
+          (doseq [uid uids]
+            (broadcast! [:frontend.controllers.players/update (players/get-player uid)]
+                        [uid]))
           (f :chsk/success))
         (f :chsk/error)))))
 
-(defmethod event-msg-handler :round/end
-  [{f :?reply-fn ?data :?data}]
-  (let [{rid :rid} ?data
-        {:keys [game-status] :as room} (get @registered-rooms rid)]
-    (when f
-      (if (= :playing-round game-status)
-        (let [new-room (assoc room :game-status :in-progress)]
-          (swap! registered-rooms assoc rid new-room)
-          (broadcast! [:frontend.controllers.room/update {:rid rid :room new-room}])
-          (f :chsk/success))
-        (f :chsk/error)))))
-
-(defmethod event-msg-handler :round/place-bid
+(defmethod event-msg-handler :log/place-bid
   [{f :?reply-fn ?data :?data uid :uid}]
-  (let [{rid :rid bid :bid} ?data
-        {:keys [game-status round-history] :as room} (get @registered-rooms rid)]
+  (let [{:keys [log-id bid gid]} ?data]
     (when f
-      (if (= :playing-round game-status)
-        (let [new-round-history (round/place-bid round-history bid uid)]
-          (swap! registered-rooms assoc rid (assoc room :round-history new-round-history))
-          (broadcast-round! (last new-round-history))
+      (if-let [log (logs/get-log log-id)]
+        (let [uids (players/log->players log-id)
+              new-log (logs/place-bid! log bid uid uids)
+              new-log-id (logs/add-log! new-log log)
+              round-id (round/append-log! (:log/id log) new-log-id)]              
+          (broadcast! [:frontend.controllers.round/update (round/get-round round-id)]
+                      uids)
+          (broadcast! [:frontend.controllers.log/update (logs/get-log new-log-id)]
+                      uids)
+          (when (= :end (:log/phase new-log))
+            (game/end-round! gid)
+            (broadcast! [:frontend.controllers.game/update (game/get-game gid)]
+                        uids))
           (f :chsk/success))
         (f :chsk/error)))))
 
-(defmethod event-msg-handler :round/make-announcement
+(defmethod event-msg-handler :log/make-announcement
   [{f :?reply-fn ?data :?data uid :uid}]
-  (let [{rid :rid announcement :announcement} ?data
-        {:keys [game-status round-history] :as room} (get @registered-rooms rid)
-        last-log (last (:round-log (last round-history)))]    
+  (let [{log-id :log-id announcement :announcement} ?data
+        old-log (logs/get-log log-id)]
     (when f
-      (if (and (= :playing-round game-status)
-               (= :announcements (:phase last-log)))
-        (let [new-round-history (round/make-announcement round-history announcement uid)]
+      (if (= :announcements (:log/phase old-log))
+        (let [uids (players/log->players log-id)
+              round (logs/log-id->round log-id)
+              new-log (-> old-log
+                          (logs/make-announcement announcement uid)
+                          (logs/make-dog (:round/dog round)))
+              new-log-id (logs/add-log! new-log old-log)
+              round-id (round/append-log! (:log/id old-log) new-log-id)]
+          (when-let [dog (:log/dog new-log)]
+            (players/add-dog-to-hand! (players/uid->pid uid) dog)
+            (broadcast! [:frontend.controllers.players/update (players/get-player uid)]
+                        [uid]))
+          (broadcast! [:frontend.controllers.round/update (round/get-round round-id)]
+                      uids)
+          (broadcast! [:frontend.controllers.log/update (logs/get-log new-log-id)]
+                      uids)
           ;; TODO piles should not be broadcast out
-          (when (= :dog-construction (:phase (last (:round-log (last new-round-history)))))            
-            (broadcast! [:frontend.controllers.room/update (last new-round-history)]))
-          (swap! registered-rooms assoc rid (assoc room :round-history new-round-history))
-          (broadcast-round! (last new-round-history))
           (f :chsk/success))
         (f :chsk/error)))))
 
-(defmethod event-msg-handler :round/submit-dog
+(defmethod event-msg-handler :log/submit-dog
   [{f :?reply-fn ?data :?data uid :uid}]
-  (let [{rid :rid init-taker-pile :init-taker-pile} ?data
-        {:keys [game-status round-history] :as room} (get @registered-rooms rid)        
-        last-log (last (:round-log (last round-history)))]
+  (let [{log-id :log-id init-taker-pile :init-taker-pile} ?data
+        old-log (logs/get-log log-id)]
     (when f
-      (if (and (= :playing-round game-status)
-               (= :dog-construction (:phase last-log))
-               (= (get-in last-log [:taker :player :id]) uid)
+      (if (and (= :dog-construction (:log/phase old-log))
+               (= uid (get-in old-log [:log/taker :uid]))
                (= 6 (count init-taker-pile)))
-        (let [new-round-history (round/init-dog round-history init-taker-pile)]
-          ;; TODO piles should not be broadcast out
-          (broadcast! [:frontend.controllers.room/update (last new-round-history)])
-          (swap! registered-rooms assoc rid (assoc room :round-history new-round-history))
-          (broadcast-round! (last new-round-history))
-          (f :chsk/success))
-        (f :chsk/error)))))
+          (let [uids (players/log->players log-id)
+                new-log (logs/init-dog old-log init-taker-pile)
+                new-log-id (logs/add-log! new-log old-log)
+                round-id (round/append-log! (:log/id old-log) new-log-id)]
+            (players/remove-dog-from-hand! (players/uid->pid uid) init-taker-pile)            
+            (broadcast! [:frontend.controllers.players/update (players/get-player uid)]
+                        [uid])
+            (broadcast! [:frontend.controllers.round/update (round/get-round round-id)]
+                        uids)
+            (broadcast! [:frontend.controllers.log/update (logs/get-log new-log-id)]
+                        uids)
+            (f :chsk/success))
+          (f :chsk/error)))))
 
 (defmethod event-msg-handler :card/play
   [{f :?reply-fn ?data :?data uid :uid}]
-  (let [{rid :rid card :card} ?data
-        {:keys [game-status round-history] :as room} (get @registered-rooms rid)
-        last-log (last (:round-log (last round-history)))]
+  (let [{log-id :log-id card :card} ?data
+        old-log (logs/get-log log-id)]
     (when f
-      (if (and (= :playing-round game-status)
-               (= :main (:phase last-log))
-               (round/user-turn? round-history uid)
-               (round/allowed-card? round-history uid card))        
-        (let [new-round-history (round/play-card round-history card uid)]
-          (broadcast! [:frontend.controllers.room/update (last new-round-history)])
-          (swap! registered-rooms assoc rid (assoc room :round-history new-round-history))
-          (broadcast-round! (last new-round-history))
+      (if (and (= :main (:log/phase old-log))
+               (logs/user-turn? old-log uid)
+               (logs/allowed-card? old-log card uid))
+        (let [uids (players/log->players log-id)
+              new-log (logs/play-card old-log card uid)
+              new-log-id (logs/add-log! new-log old-log)
+              round-id (round/append-log! (:log/id old-log) new-log-id)]
+          (cards/remove-card-from-hand! (players/uid->pid uid) card)
+          (broadcast! [:frontend.controllers.players/update (players/get-player uid)]
+                      [uid])
+          (broadcast! [:frontend.controllers.round/update (round/get-round round-id)]
+                      uids)
+          (broadcast! [:frontend.controllers.log/update (logs/get-log new-log-id)]
+                      uids)
           (f :chsk/success))
         (f :chsk/error)))))
 
-(defmethod event-msg-handler :round/count
+(defmethod event-msg-handler :round/score
   [{f :?reply-fn ?data :?data}]
-  (let [{rid :rid} ?data
-        {:keys [game-status round-history] :as room} (get @registered-rooms rid)
-        last-log (last (:round-log (last round-history)))]
+  (let [{log-id :log-id gid :gid} ?data
+        old-log (logs/get-log log-id)]
     (when f
-      (if (and (= :playing-round game-status)
-               (= :scoring (:phase last-log)))
-        (let [new-round-history (round/score round-history)]
-          (broadcast! [:frontend.controllers.room/update (last new-round-history)])
-          (swap! registered-rooms assoc rid (assoc room :round-history new-round-history))
-          (broadcast-round! (last new-round-history))
+      (if (= :scoring (:log/phase old-log))
+        (let [uids (players/log->players log-id)
+              new-log (round/score old-log)
+              new-log-id (logs/add-log! new-log old-log)
+              round-id (round/append-log! (:log/id old-log) new-log-id)]          
+          (round/next-dealer! round-id)
+          (players/append-scores! new-log uids)
+          (game/end-round! gid)
+          (doseq [uid uids]
+            (broadcast! [:frontend.controllers.players/update (players/get-player uid)]
+                        [uid]))
+          (broadcast! [:frontend.controllers.round/update (round/get-round round-id)]
+                      uids)
+          (broadcast! [:frontend.controllers.log/update (logs/get-log new-log-id)]
+                      uids)
+          (broadcast! [:frontend.controllers.game/update (game/get-game gid)]
+                      uids)          
           (f :chsk/success))
         (f :chsk/error)))))
 
-(defmethod event-msg-handler :room/get-ids
+(defmethod event-msg-handler :rooms/get
   [{f :?reply-fn}]
   (when f
-    (f {:rooms @registered-rooms})))
+    (f (room/get-rooms))))
 
+(defmethod event-msg-handler :users/get
+  [{f :?reply-fn}]
+  (when f
+    (f (user/get-users))))
+ 
 ;; TODO Other handlers for default sente events...
 
 (defmethod event-msg-handler :chsk/uidport-open
-  [{?data :?data}]
-  (log/info "Server " (pr-str ?data)))
+  [{uid :uid}]
+  (let [user (user/create uid)]
+    (db/insert! uid user)
+    (broadcast! [:frontend.controllers.user/update
+                 {:uid uid
+                  :user user}])))
 
 (defstate router
   :start (sente/start-server-chsk-router!
           (:ch-recv ws/server-chsk)
           event-msg-handler))
-
-(comment
-  (reset! registered-rooms {}))

@@ -1,10 +1,14 @@
-(ns backend.models.cards)
+(ns backend.models.cards
+  (:require
+   [backend.db :as db]))
 
-(defn top-card [board]
+(defn top-card
+  "Returns the holding board entry."
+  [board]
   (reduce
    (fn [incumbent challenger]
-     (let [{c1 :card p1 :play-order} incumbent
-           {c2 :card p2 :play-order} challenger]
+     (let [{c1 :board/card p1 :board/play-order} incumbent
+           {c2 :board/card p2 :board/play-order} challenger]
        (cond
          (= :excuse (:type c1))
          challenger
@@ -33,3 +37,6 @@
               (< p1 p2))
          incumbent)))
    board))
+
+(defn remove-card-from-hand! [pid card]
+  (db/run-fx! ::remove-card-from-hand pid card ))
