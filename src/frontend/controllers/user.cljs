@@ -1,7 +1,10 @@
 (ns frontend.controllers.user
   "For all functions regarding the operating user. Not other users."
   (:require
-   [re-frame.core :as rf]))
+   [frontend.cookies :as cookies]
+   [frontend.websockets.core :as ws]
+   [re-frame.core :as rf]
+   [taoensso.sente :as sente]))
 
 (rf/reg-sub
  ::id
@@ -9,31 +12,43 @@
    (get db :user/id)))
 
 (rf/reg-sub
- ::user
- (fn [db _]
-   (let [uid (get db :user/id)]
-     (get-in db [:users uid]))))
-
-(rf/reg-sub
  ::room
- :<- [::user]
- (fn [user _]
-   (get user :user/room)))
+ (fn [db _]
+   (get db :user/room)))
 
 (rf/reg-sub
  ::name
- :<- [::user]
- (fn [user _]
-   (get user :user/name)))
+ (fn [db _]
+   (get db :user/name)))
+
+(rf/reg-sub
+ ::missing-name?
+ :<- [::name]
+ (fn [name _]
+   (not name)))
+
+(rf/reg-event-fx
+ ::set-name
+ (fn [{db :db} [_ username]]
+   {::cookies/set-username username
+    :db (assoc db :user/name username)}))
+
+(rf/reg-fx
+ :user/submit
+ (fn [username]
+   ((:send-fn ws/client-chsk)
+    [:user/submit {:user/name username}]
+    1000
+    (fn [reply]
+      (when (sente/cb-success? reply)
+        (rf/dispatch [::set-name reply]))))))
+
+(rf/reg-event-fx
+ ::submit-name
+ (fn [_ [_ username]]
+  {:user/submit username}))
 
 (rf/reg-event-db
  ::update
- (fn [db [_ {uid :uid user :user}]]
-   (if user
-     (update db :users assoc uid user)
-     (update db :users dissoc uid))))
-
-(rf/reg-event-db
- ::register-all
- (fn [db [_ users]]
-   (assoc db :users users)))
+ (fn [db [_ user]]
+   (merge db user)))

@@ -4,12 +4,17 @@
 
 (rf/reg-event-fx
  ::set-user-id
- [(rf/inject-cofx ::cookies/uid)]
- (fn [{db :db stored-uid :cookie/uid} [_ uid]]
-   (if false #_stored-uid ;; TODO just makes it easier to develop 
-     {:db (assoc db :user/id stored-uid)}
-     {:db (assoc db :user/id uid)
-      ::cookies/set-uid uid})))
+ [(rf/inject-cofx ::cookies/uid)
+  (rf/inject-cofx ::cookies/username)]
+ (fn [{db :db
+       stored-uid :cookie/uid
+       stored-username :cookie/username} [_ uid]]
+   (merge
+    {:db (cond-> db
+           stored-username (assoc :user/name stored-username)
+           true            (assoc :user/id (or stored-uid uid)))}
+    (when-not stored-uid
+      {::cookies/set-uid uid}))))
 
 (rf/reg-event-db
  ::open

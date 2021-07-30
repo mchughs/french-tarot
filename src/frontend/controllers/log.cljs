@@ -3,7 +3,8 @@
    [re-frame.core :as rf]
    [frontend.controllers.players :as players]
    [frontend.websockets.core :as ws]
-   [taoensso.sente :as sente]))
+   [taoensso.sente :as sente]
+   [utils :as utils]))
 
 (rf/reg-event-db
  ::update
@@ -59,9 +60,14 @@
 
 (rf/reg-sub
  ::board
- :<- [::log]
- (fn [log _]
-   (:log/board log)))
+ (fn [db _]
+   (utils/fmap #(:board/card
+                 (utils/find-first
+                  (fn [board]
+                    (= (:board/position board)
+                       (:player/position %)))
+                  (get-in db [:curr/log :log/board])))
+               (:players db))))
 
 ;; events
 

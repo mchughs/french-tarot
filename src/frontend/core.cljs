@@ -1,26 +1,33 @@
 (ns frontend.core
   (:require
-   [frontend.events :as events]
    [frontend.controllers.lobby :as lobby]
+   [frontend.events :as events]
    [frontend.router.core :as router]
-   [frontend.views.pages.not-found :as not-found]
+   [frontend.router.subscriptions :as router.subs]
    [frontend.views.elements.header :as header]
+   [frontend.views.elements.username-modal :as username-modal]
+   [frontend.views.pages.not-found :as not-found]
+   [frontend.websockets.subscriptions :as ws.subs]
    [re-frame.core :as rf]
    [reagent.core :as r]
-   [reagent.dom :as rdom] 
-   [frontend.websockets.subscriptions :as ws.subs]
-   [frontend.router.subscriptions :as router.subs]))
+   [reagent.dom :as rdom]))
 
 (defn component []
   (r/with-let [match (rf/subscribe [::router.subs/page-match])]
     [:div#root
      (if @match
        (let [{view :view tab-name :name} (:data @match)]
-         [:div {:class "bg-gray-200 grid overflow-hidden sm:rounded-lg"}
-          [:div {:class "bg-white px-4 py-5 sm:p-6 h-screen max-w-screen-lg justify-self-center w-full"}
-           [header/component tab-name]
-           (when @(rf/subscribe [::ws.subs/chsk-open?]) ;; wait for the channel socket to be open           
-             [view @match])]])
+         [:<>
+          (when @(rf/subscribe [::ws.subs/chsk-open?]) ;; wait for the handshake/user-initialization to have completed. 
+            [username-modal/component])
+          [:div {:class "bg-gray-200 grid overflow-x-hidden sm:rounded-lg"}
+           [:div {:class "bg-white px-4 py-5 sm:p-6
+                         sm:max-w-screen-sm lg:max-w-screen-lg
+                         w-full h-screen
+                         justify-self-center"}
+            [header/component tab-name]
+            (when @(rf/subscribe [::ws.subs/chsk-open?]) ;; wait for the channel socket to be open           
+              [view @match])]]])
        [not-found/page])]))
 
 (defn init-db! []
@@ -38,8 +45,8 @@
    :chsk/open
    (fn [_key _atom old-state new-state]
      (when (and (not= old-state new-state) new-state)
-       (lobby/fetch-users!)
-       (lobby/fetch-rooms!)))))
+       (lobby/fetch-rooms!)
+       (lobby/fetch-user!)))))
 
 (defn init []
   (js/console.log "Init Frontend...")

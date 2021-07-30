@@ -1,14 +1,8 @@
 (ns backend.models.user
   (:require [backend.db :as db]))
 
-(defn- name-generator []
-  (str (rand-nth ["Alice" "Bob" "Charlie" "David" "Eve" "Florence" "Giselle" "Harry" "Ivan" "Juliet" "Kevin" "Lisa"])
-       "-"
-       (rand-int 999)))
-
 (defn create [uid]
-  {:user/id    uid
-   :user/name  (name-generator)
+  {:user/id    uid   
    :user/host? false})
 
 (defn get-user
@@ -19,18 +13,19 @@
            :where [[user :user/id uid]]}
          uid))
 
-(defn get-users
-  "Returns all the users as a map."
-  []
-  (reduce
-   (fn [acc [user]]
-     (assoc acc (:user/id user) user))
-   {}
-   (db/q '{:find [(pull user [:user/id
-                              :user/name
-                              :user/room
-                              :user/host?])]
-           :where [[user :user/id]]})))
+(defn get-username
+  [uid]
+  (db/q1 '{:find username
+           :in [uid]
+           :where [[e :user/id uid]
+                   [e :user/name username]]} uid))
+
+(defn has-name? [uid username]
+  (= username
+     (get-username uid)))
+
+(defn give-name! [uid name]
+  (db/run-fx! ::give-name uid name))
 
 (defn host-room! [uid rid]
   (db/run-fx! ::join-room uid rid true))

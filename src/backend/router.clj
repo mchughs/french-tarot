@@ -38,10 +38,7 @@
                 #{uid})
     (broadcast! [:frontend.controllers.room/update
                  {:rid rid
-                  :room new-room}])
-    (broadcast! [:frontend.controllers.user/update
-                 {:uid uid
-                  :user (user/get-user uid)}])))
+                  :room new-room}])))
 
 (defn- broadcast-room! [rid]
   (broadcast! [:frontend.controllers.room/update
@@ -57,9 +54,6 @@
           (room/add-player! rid uid) ;; idempotent operation.
           (user/join-room! uid rid)
           (broadcast-room! rid)
-          (broadcast! [:frontend.controllers.user/update
-                       {:uid uid
-                        :user (user/get-user uid)}])
           (f :chsk/success))
         (f :chsk/error)))))
 
@@ -70,10 +64,7 @@
       (if (room/can-leave? rid uid)
         (let [leaving-players (room/remove-player! rid uid)]          
           (doseq [user-id leaving-players]
-            (user/leave-room! user-id rid)
-            (broadcast! [:frontend.controllers.user/update
-                         {:uid user-id
-                          :user (user/get-user user-id)}]))
+            (user/leave-room! user-id rid))
           (broadcast! [:frontend.controllers.room/exit
                        {}]
                       leaving-players)
@@ -89,8 +80,10 @@
         (let [gid (game/create! rid)
               uids (players/create! rid gid)]
           (game/start! rid gid)
-          (broadcast-room! rid)          
+          (broadcast-room! rid)
           (broadcast! [:frontend.controllers.game/update (game/get-game gid)]
+                      uids)
+          (broadcast! [:frontend.controllers.players/fetch (players/get-public-player-data gid)]
                       uids)
           (f :chsk/success))
         (f :chsk/error)))))
@@ -188,10 +181,10 @@
   [{f :?reply-fn ?data :?data uid :uid}]
   (let [{log-id :log-id card :card} ?data
         old-log (logs/get-log log-id)]
-    (when f
+    (when f      
       (if (and (= :main (:log/phase old-log))
                (logs/user-turn? old-log uid)
-               (logs/allowed-card? old-log card uid))
+               (logs/allowed-card? old-log card uid))        
         (let [uids (players/log->players log-id)
               new-log (logs/play-card old-log card uid)
               new-log-id (logs/add-log! new-log old-log)
@@ -236,10 +229,10 @@
   (when f
     (f (room/get-rooms))))
 
-(defmethod event-msg-handler :users/get
-  [{f :?reply-fn}]
+(defmethod event-msg-handler :user/get
+  [{f :?reply-fn uid :uid}]
   (when f
-    (f (user/get-users))))
+    (f (user/get-user uid))))
  
 ;; TODO Other handlers for default sente events...
 
@@ -247,9 +240,16 @@
   [{uid :uid}]
   (let [user (user/create uid)]
     (db/insert! uid user)
-    (broadcast! [:frontend.controllers.user/update
-                 {:uid uid
-                  :user user}])))
+    (broadcast! [:frontend.controllers.user/update (user/get-user uid)]
+                [uid])))
+
+(defmethod event-msg-handler :user/submit
+  [{f :?reply-fn ?data :?data uid :uid}]
+  (when f
+    (let [{username :user/name} ?data]
+      (when-not (user/has-name? uid username)
+        (user/give-name! uid username))      
+      (f username))))
 
 (defstate router
   :start (sente/start-server-chsk-router!

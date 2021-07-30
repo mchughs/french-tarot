@@ -1,7 +1,4 @@
-(ns frontend.views.elements.player-list
-  (:require
-   [frontend.controllers.players :as players]
-   [re-frame.core :as rf]))
+(ns frontend.views.elements.player-list)
 
 (defn list-item [& [{:keys [name host? you?]
                      :or {name "_"
@@ -15,16 +12,15 @@
     (when host?
       [:p.text-sm.text-gray-500
        "Room Host"])]])
-     
 
-(defn component [player-id host-id players]
+(defn component [player-id host-id players playernames]
   (let [open-spots (- 4 (count players))]
     [:ul.divide-y.divide-gray-200
      (->> players
           (map (fn [uid]
                  ^{:key (gensym)}
                  [list-item
-                  {:name @(rf/subscribe [::players/name uid])
+                  {:name (get playernames uid)
                    :host? (= host-id uid)
                    :you? (= player-id uid)}]))
           doall)

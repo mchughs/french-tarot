@@ -144,7 +144,7 @@
                                   [player-id :player/user-id uid]
                                   [player-id :player/position turn]]}
                         (:log/id log)
-                        turn)]
+                        turn)]    
     (= turn-uid uid)))
 
 (defn allowed-card?
@@ -163,7 +163,7 @@
         first-card (:board/card (first board))
         obliged-suit (if (= :excuse (:type first-card))
                        (:suit (:board/card (second board)))
-                       (:suit first-card))]
+                       (:suit first-card))]    
     (or (= :excuse (:type card)) ;; Excuse can be played at anytime
         (empty? board) ;; Opening card can be anything. ;; TODO on first turn there are some choices which are not allowed
         (and (= :excuse (:type first-card)) ;; If the first card played is the excuse, the next card can be anything.

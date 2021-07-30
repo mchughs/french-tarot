@@ -15,14 +15,14 @@
                       (let [db (crux.api/db ctx)
                             round (crux.api/entity db round-id)]
                         [[:crux.tx/put (update round :round/dealer-turn #(mod (inc %) 4))]]))}]
-     
+
      [:crux.tx/put
       {:crux.db/id :backend.models.game/end-round
        :crux.db/fn '(fn [ctx gid]
                       (let [db (crux.api/db ctx)
                             game (crux.api/entity db gid)]
                         [[:crux.tx/put (assoc game :game/status :pre)]]))}]
-     
+
      [:crux.tx/put
       {:crux.db/id :backend.models.players/append-scores
        :crux.db/fn '(fn [ctx player-id score]
@@ -35,35 +35,35 @@
                       (let [db (crux.api/db ctx)
                             player (crux.api/entity db player-id)]
                         [[:crux.tx/put (update player :player/hand disj card)]]))}]
-     
+
      [:crux.tx/put
       {:crux.db/id :backend.models.players/remove-dog-from-hand
        :crux.db/fn '(fn [ctx player-id init-pile]
                       (let [db (crux.api/db ctx)
                             player (crux.api/entity db player-id)]
                         [[:crux.tx/put (update player :player/hand clojure.set/difference init-pile)]]))}]
-     
+
      [:crux.tx/put
       {:crux.db/id :backend.models.players/add-dog-to-hand
-       :crux.db/fn '(fn [ctx player-id dog] 
+       :crux.db/fn '(fn [ctx player-id dog]
                       (let [db (crux.api/db ctx)
                             player (crux.api/entity db player-id)]
                         [[:crux.tx/put (update player :player/hand clojure.set/union dog)]]))}]
-     
+
      [:crux.tx/put
       {:crux.db/id :backend.models.round/append-log
        :crux.db/fn '(fn [ctx round-id log-id]
                       (let [db (crux.api/db ctx)
                             round (crux.api/entity db round-id)]
                         [[:crux.tx/put (update round :round/logs conj log-id)]]))}]
-     
+
      [:crux.tx/put
       {:crux.db/id :backend.models.game/begin-round
        :crux.db/fn '(fn [ctx gid]
                       (let [db (crux.api/db ctx)
                             game (crux.api/entity db gid)]
                         [[:crux.tx/put (assoc game :game/status :during)]]))}]
-     
+
      [:crux.tx/put
       {:crux.db/id :backend.models.deck/set-dog
        :crux.db/fn '(fn [ctx round-id dog]
@@ -114,13 +114,15 @@
 
      [:crux.tx/put
       {:crux.db/id :backend.models.room/add-player
-       :crux.db/fn '(fn [ctx rid uid]
+       :crux.db/fn '(fn [ctx rid uid username]
                       (let [db (crux.api/db ctx)
                             room (crux.api/entity db rid)
-                            full? (= 3 (count (:room/players room)))]                        
+                            full? (= 3 (count (:room/players room)))]
                         [[:crux.tx/put (cond-> room
                                          true
                                          (update :room/players conj uid)
+                                         true
+                                         (update :room/playernames assoc uid username)
                                          full?
                                          (assoc :room/status :full))]]))}]
      [:crux.tx/put
@@ -130,7 +132,15 @@
                             room (crux.api/entity db rid)]
                         [[:crux.tx/put (-> room
                                            (update :room/players disj uid)
-                                           (assoc :room/status :open))]]))}]])))
+                                           (update :room/playernames dissoc uid)
+                                           (assoc :room/status :open))]]))}]
+
+     [:crux.tx/put
+      {:crux.db/id :backend.models.user/give-name
+       :crux.db/fn '(fn [ctx uid name]
+                      (let [db (crux.api/db ctx)
+                            user (crux.api/entity db uid)]
+                        [[:crux.tx/put (assoc user :user/name name)]]))}]])))
 
 (defn start! []
   (letfn [(kv-store [dir]
@@ -138,9 +148,9 @@
                         :db-dir      (io/file dir)
                         :sync?       true}})]
     (let [node (crux/start-node
-                {:crux/tx-log         (kv-store "data/dev/tx-log")
-                 :crux/document-store (kv-store "data/dev/doc-store")
-                 :crux/index-store    (kv-store "data/dev/index-store")})]
+                {#_#_:crux/tx-log         (kv-store "data/dev/tx-log")
+                 #_#_:crux/document-store (kv-store "data/dev/doc-store")
+                 #_#_:crux/index-store    (kv-store "data/dev/index-store")})]
       (insert-tx-functions! node)
       node)))
 
@@ -214,7 +224,7 @@
        :where [[e :room/id]]})
 
   (q '{:find [(pull e [*])]
-       :where [[e :round/id]]})
+       :where [[e :round/id]]})  
 
   (->> (q '{:find [(pull e [*])]
             :where [[e :log/id]]})

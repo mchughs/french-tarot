@@ -17,8 +17,8 @@
 
 (defmethod event-msg-handler :chsk/handshake
   [{?data :?data}]
-  (let [[uid _] ?data]
-    (rf/dispatch [::ws.events/set-user-id uid])))
+  (let [[uid _] ?data]    
+    (rf/dispatch-sync [::ws.events/set-user-id uid])))
 
 (defmethod event-msg-handler :chsk/state
   [{?data :?data}]

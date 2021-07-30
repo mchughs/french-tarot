@@ -42,6 +42,11 @@
            :where [[e :player/user-id uid]]}
          uid))
 
+(defn get-public-player-data [gid]
+  (let [uids (get-players gid)]
+    (map (comp #(select-keys % [:player/user-id :player/name :player/position :player/score])
+               get-player) uids)))
+
 (defn log->players
   [log-id]
   (db/q1 '{:find (distinct uid)

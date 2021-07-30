@@ -29,8 +29,9 @@
 
 (rf/reg-event-fx
  ::enter
- (fn [_ [_ {rid :rid}]]
-   {::router.events/to-roompage rid}))
+ (fn [{db :db} [_ {rid :rid}]]
+   {:db (assoc db :user/room rid)
+    ::router.events/to-roompage rid}))
 
 (rf/reg-fx
  :join-fx

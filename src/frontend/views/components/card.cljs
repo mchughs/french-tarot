@@ -7,6 +7,12 @@
    [re-frame.core :as rf]
    [reagent.core :as r]))
 
+(defn back []
+  [:li
+   [:button
+    [:img {:src (fmt/fmt "http://localhost:5444/assets/images/cards/cardback_1.jpg")
+           :title "back"}]]])
+
 (defn component [card]
   (r/with-let [phase (rf/subscribe [::log/phase])
                user-turn? (rf/subscribe [::log/user-turn?])

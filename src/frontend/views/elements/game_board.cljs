@@ -9,27 +9,39 @@
    [frontend.views.elements.phase.end :as phase.end]
    [frontend.views.elements.phase.main :as phase.main]   
    [frontend.views.elements.phase.scoring :as phase.scoring]
-   [frontend.views.elements.player-list :as player-list] ;; TODO will replace eventually
+   [frontend.views.components.nameplate :as nameplate]
    [re-frame.core :as rf]
    [reagent.core :as r]))
 
 (defn component
-  [rid uid {host :room/host players :room/players}]
+  [rid uid {host :room/host}]
   (r/with-let [phase (rf/subscribe [::log/phase])
                user-turn? (rf/subscribe [::log/user-turn?])
                score (rf/subscribe [::players/score])]
-    [:<>
+    [:div
      (when @user-turn?
        [:h1 "YOUR TURN"])
      [:div "Score:" @score]
      [:div "Phase: " @phase]
-     (case @phase
-       :bidding [phase.bidding/component]
-       :announcements [phase.announcements/component]
-       :dog-construction [phase.dog-construction/component]
-       :main [phase.main/component]
-       :scoring [phase.scoring/component]
-       :end [phase.end/component rid uid host]
-       [phase.end/component rid uid host])
-     [hand/component]
-     [player-list/component uid host players]]))
+     [:div {:class "relative px-6 w-full
+                    bg-gradient-to-tr from-green-900 via-green-700 to-green-900"
+            :style {:height "800px"}}
+      [:div {:class "absolute right-0 top-1/2"}
+       [nameplate/component :right]]
+      [:div {:class "absolute right-1/2 top-0"}
+       [nameplate/component :top]]
+      [:div {:class "absolute right-full top-1/2"}
+       [nameplate/component :left]]
+      [:div {:class "absolute right-1/2 top-full"}
+       [nameplate/component :bottom]
+       [hand/component]]
+      [:div {:class "absolute right-1/2 top-1/2"}
+       "Center"
+       (case @phase
+         :bidding [phase.bidding/component]
+         :announcements [phase.announcements/component]
+         :dog-construction [phase.dog-construction/component]
+         :main [phase.main/component]
+         :scoring [phase.scoring/component]
+         :end [phase.end/component rid uid host]
+         [phase.end/component rid uid host])]]]))

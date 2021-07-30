@@ -1,6 +1,5 @@
 (ns frontend.views.elements.rooms-list
   (:require
-   [frontend.controllers.players :as players]
    [frontend.controllers.room :as room]
    [re-frame.core :as rf]
    [reagent.core :as r]))
@@ -27,7 +26,7 @@
           [:tbody
            (->> @rooms
                 (map (fn [[rid {connected-players :room/players
-                                host :room/host
+                                hostname :room/hostname
                                 status :room/status}]]
                        (let [participant? (= user-room rid)
                              closed? (= :closed status)
@@ -35,7 +34,7 @@
                          ^{:key (gensym)}
                          [:tr.bg-white
                           [:td.px-6.py-4.whitespace-nowrap.text-sm.text-gray-500
-                           @(rf/subscribe [::players/name host])]
+                           hostname]
                           [:td.px-6.py-4.whitespace-nowrap.text-sm.text-gray-500
                            (str (count connected-players) "/4")]
                           [:td.px-6.py-4.whitespace-nowrap.text-left.text-sm.font-medium

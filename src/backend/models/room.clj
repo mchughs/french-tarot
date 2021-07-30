@@ -1,14 +1,18 @@
 (ns backend.models.room
   (:require
    [backend.db :as db]
+   [backend.models.user :as user]
    [clj-uuid :as uuid]
    [clojure.set :as set]))
 
 (defn create [uid]
-  (let [rid (uuid/v4)]
+  (let [rid (uuid/v4)
+        username (user/get-username uid)]
     {:room/id rid
      :room/host uid
+     :room/hostname username
      :room/players #{uid}
+     :room/playernames {uid username}
      :room/status :open
      :room/game nil}))
 
@@ -30,7 +34,9 @@
    {}
    (db/q '{:find [(pull room [:room/id
                               :room/host
+                              :room/hostname
                               :room/players
+                              :room/playernames
                               :room/status])]
            :where [[room :room/id]]})))
 
@@ -55,7 +61,7 @@
          (nil? room)))) ;; joiner isn't already in any other rooms.
 
 (defn add-player! [rid uid]
-  (db/run-fx! ::add-player rid uid))
+  (db/run-fx! ::add-player rid uid (user/get-username uid)))
 
 (defn can-leave?
   "The user can leave if

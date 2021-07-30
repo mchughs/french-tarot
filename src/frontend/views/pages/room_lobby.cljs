@@ -21,16 +21,17 @@
         [game-board/component rid @uid @room]
 
         :else
-        (let [{host    :room/host
-               players :room/players
-               status  :room/status} @room
+        (let [{host        :room/host
+               players     :room/players
+               playernames :room/playernames
+               status      :room/status} @room
               host?    (= host @uid)
               full?    (= :full status)
               in?      (contains? players @uid)]
           [:div
            [:div.pt-4.font-medium.text-lg "Players:"]
            [:div.py-4
-            [player-list/component @uid host players]]
+            [player-list/component @uid host players playernames]]
 
            (when-not in?
              [:div.w-full.grid.py-6

@@ -9,7 +9,7 @@
   :start (sente/make-channel-socket-server!
           (get-sch-adapter)
           {:user-id-fn (fn [{client-id :client-id cookies :cookies}]
-                         (let [uid (or #_(get-in cookies ["sente-user-id" :value]) ;; TODO just makes it easier to develop
+                         (let [uid (or (get-in cookies ["sente-user-id" :value])
                                        client-id)]                           
                            uid))}))
 

@@ -13,3 +13,15 @@
    (if-let [stored-id (rc/get :sente-user-id)]
      (assoc coeffects :cookie/uid stored-id)
      coeffects)))
+
+(rf/reg-fx
+ ::set-username
+ (fn [username]
+   (rc/set! :sente-username username)))
+
+(rf/reg-cofx
+ ::username
+ (fn [coeffects _]
+   (if-let [stored-username (rc/get :sente-username)]
+     (assoc coeffects :cookie/username stored-username)
+     coeffects)))

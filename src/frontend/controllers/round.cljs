@@ -57,3 +57,8 @@
  (fn [{db :db} _]
    {:round/score {:log-id (get-in db [:curr/log :log/id])
                   :gid (get-in db [:game :game/id])}}))
+
+(rf/reg-sub
+ ::dealer-turn
+ (fn [db _]
+   (get-in db [:curr/round :round/dealer-turn])))
