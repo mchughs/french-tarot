@@ -18,11 +18,20 @@
   (db/q1 '{:find username
            :in [uid]
            :where [[e :user/id uid]
-                   [e :user/name username]]} uid))
+                   [e :user/name username]]}
+         uid))
 
 (defn has-name? [uid username]
   (= username
      (get-username uid)))
+
+(defn name-taken?
+  [username]
+  (db/q1 '{:find uid
+           :in [username]
+           :where [[e :user/id uid]
+                   [e :user/name username]]}
+         username))
 
 (defn give-name! [uid name]
   (db/run-fx! ::give-name uid name))

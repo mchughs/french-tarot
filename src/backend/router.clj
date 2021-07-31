@@ -247,9 +247,17 @@
   [{f :?reply-fn ?data :?data uid :uid}]
   (when f
     (let [{username :user/name} ?data]
-      (when-not (user/has-name? uid username)
-        (user/give-name! uid username))      
-      (f username))))
+      (cond
+        (user/has-name? uid username)
+        (f username)
+
+        (user/name-taken? username)
+        (f :chsk/error)
+        
+        :else
+        (do
+          (user/give-name! uid username)
+          (f username))))))
 
 (defstate router
   :start (sente/start-server-chsk-router!

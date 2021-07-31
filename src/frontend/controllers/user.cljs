@@ -40,8 +40,9 @@
     [:user/submit {:user/name username}]
     1000
     (fn [reply]
-      (when (sente/cb-success? reply)
-        (rf/dispatch [::set-name reply]))))))
+      (if (sente/cb-success? reply)
+        (rf/dispatch [::set-name reply])
+        (js/alert "Sorry, a user already has taken that name. Please choose another name."))))))
 
 (rf/reg-event-fx
  ::submit-name
