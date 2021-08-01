@@ -23,7 +23,7 @@
           [:div {:class "bg-gray-200 grid overflow-x-hidden sm:rounded-lg"}
            [:div {:class "bg-white px-4 py-5 sm:p-6
                          sm:max-w-screen-sm lg:max-w-screen-lg
-                         w-full h-screen
+                         w-full min-h-screen h-auto
                          justify-self-center"}
             [header/component tab-name]
             (when @(rf/subscribe [::ws.subs/chsk-open?]) ;; wait for the channel socket to be open           

@@ -18,6 +18,8 @@
        (hiccup.page/html5
         {:lang "en"}
         [:head
+         [:title "French Tarot"]
+         [:link {:rel "icon" :href "http://localhost:5444/icons/icons8-cards-16.png"}]
          [:meta {:charset "UTF-8"}]
          [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
          [:link {:href "http://localhost:5444/css/style.css" :rel "stylesheet" :type "text/css"}]

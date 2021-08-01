@@ -148,9 +148,9 @@
                         :db-dir      (io/file dir)
                         :sync?       true}})]
     (let [node (crux/start-node
-                {#_#_:crux/tx-log         (kv-store "data/dev/tx-log")
-                 #_#_:crux/document-store (kv-store "data/dev/doc-store")
-                 #_#_:crux/index-store    (kv-store "data/dev/index-store")})]
+                {:crux/tx-log         (kv-store "data/dev/tx-log")
+                 :crux/document-store (kv-store "data/dev/doc-store")
+                 :crux/index-store    (kv-store "data/dev/index-store")})]
       (insert-tx-functions! node)
       node)))
 
