@@ -3,7 +3,6 @@
             [malli.core :as m]
             [players :as player.data]
             [backend.models.round :as sut]
-            [specs.player :as s.player]
             [specs.round :as s.round]))
 
 ;; falls 39 points below the mark
@@ -12,22 +11,18 @@
 (def p1-bonuses
   {:bonus/won-petit-au-bout 10})
 
-(def p1-bid
-  {:type :bid/garde
-   :multiplier 2})
+(def p1-bid :bid/garde)
 
 (deftest calc-test
-  (let [{:keys [taker defenders]}
-        (sut/calculate-scores {:player player.data/player-one
-                               :pile sample-pile
+  (let [{t-score :taker/score
+         d-score :defenders/score}
+        (sut/calculate-scores {:pile sample-pile
                                :bid p1-bid
                                :bonuses p1-bonuses}
-          #{player.data/player-two
-            player.data/player-three
-            player.data/player-four})]
-    (is (m/validate s.player/Player taker))
+                              {:uids #{(:id player.data/player-two)
+                                       (:id player.data/player-three)
+                                       (:id player.data/player-four)}})]    
     (is (m/validate s.round/Bid p1-bid))
     (is (m/validate s.round/Bonuses p1-bonuses))
-    (is (every? #(m/validate s.player/Player %) defenders))
-    (is (= -294 (:score taker)))
-    (is (every? #(= 98 (:score %)) defenders))))
+    (is (= -324 t-score))
+    (is (= 108 d-score))))

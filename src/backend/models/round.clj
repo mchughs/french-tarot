@@ -49,7 +49,6 @@
                 (+ (Math/abs delta)
                    (taker-fn (reduce + 0 (vals pre-mult-bonuses)))
                    25)))))]
-
     {:taker/score (* (count (:uids defenders)) taker-hand-score)
      :defenders/score (* -1 taker-hand-score)}))
 

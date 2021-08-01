@@ -2,10 +2,10 @@
   (:require [malli.util :as mu]))
 
 (def Bid
-  [:enum {:type :bid/petit        :multiplier 1}
-         {:type :bid/garde        :multiplier 2}
-         {:type :bid/garde-sans   :multiplier 4}
-         {:type :bid/garde-contre :multiplier 6}])
+  [:enum :bid/petit
+         :bid/garde
+         :bid/garde-sans
+         :bid/garde-contre])
 
 (def Bonuses
   (mu/optional-keys

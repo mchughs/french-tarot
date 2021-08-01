@@ -32,7 +32,7 @@
                   [player-id :player/position position]]}
         gid))
 
-(defn- divide-cards
+(defn divide-cards
   "Divides out cards between each player and the dog in a manner similar to the customary physical dealing process."
   [deck]
   (let [{dog-cards true

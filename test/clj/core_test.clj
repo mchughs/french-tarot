@@ -35,9 +35,7 @@
    :score 0
    :hand #{}})
 
-(def confident-bid
-  {:type :bid/garde-contre
-   :multiplier 6})
+(def confident-bid :bid/garde-contre)
 
 (deftest validation-test
   (is (m/validate s.cards/Card ace-of-spades))

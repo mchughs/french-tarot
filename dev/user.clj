@@ -16,6 +16,8 @@
   (mount/stop)
   (repl/refresh :after 'user/start!))
 
+(start!)
+
 (comment
   (start!)
   (reset))
