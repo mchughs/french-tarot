@@ -10,7 +10,7 @@
 (defn back []
   [:li
    [:button
-    [:img {:src (fmt/fmt "http://localhost:5444/assets/images/cards/cardback_1.jpg")
+    [:img {:src (fmt/fmt "http://localhost:5444/assets/images/cards_new/cardback_1.jpg")
            :title "back"}]]])
 
 (defn component [card]
@@ -37,6 +37,6 @@
 
                                :else
                                #(js/console.log "TODO???"))}
-      [:img {:src (fmt/fmt "http://localhost:5444/assets/images/cards/%s.jpg"
+      [:img {:src (fmt/fmt "http://localhost:5444/assets/images/cards_new/%s.jpg"
                            (s/replace (fmt/card->name card) #"\s" "_"))
              :title (fmt/card->name card)}]]]))
