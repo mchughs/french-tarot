@@ -31,10 +31,14 @@
            :test     {:extra-paths ["test/clj" "test/data"]
                       :extra-deps  {cloverage/cloverage {:mvn/version "1.2.2"}
                                     #_#_com.cognitect/test-runner
-                                    {:git/url "https://github.com/cognitect-labs/test-runner.git"
-                                     :sha     "209b64504cb3bd3b99ecfec7937b358a879f55c1"}}
+                                      {:git/url "https://github.com/cognitect-labs/test-runner.git"
+                                       :sha     "209b64504cb3bd3b99ecfec7937b358a879f55c1"}}
                       :main-opts   ["-m" "cloverage.coverage"
                                     "-p" "src"
                                     "-s" "test"
                                     "--junit"
-                                    #_#_"-m" "cognitect.test-runner"]}}}
+                                    #_#_"-m" "cognitect.test-runner"]}
+           :uberdeps {:replace-deps {uberdeps/uberdeps {:mvn/version "1.0.4"}}
+                      :replace-paths []
+                      :main-opts ["-m" "uberdeps.uberjar"
+                                  "--aliases" "backend"]}}}

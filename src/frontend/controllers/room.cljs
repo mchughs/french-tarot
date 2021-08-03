@@ -51,8 +51,9 @@
 
 (rf/reg-event-fx
  ::exit
- (fn [_ _]
-   {::router.events/to-homepage _}))
+ (fn [{db :db} _]
+   {:db (dissoc db :user/room)
+    ::router.events/to-homepage _}))
 
 (rf/reg-fx
  :leave-fx

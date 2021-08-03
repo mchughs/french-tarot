@@ -16,7 +16,8 @@
   (mount/stop)
   (repl/refresh :after 'user/start!))
 
-(start!)
+(defn -main [& _args]
+  (start!))
 
 (comment
   (start!)

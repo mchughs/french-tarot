@@ -4,6 +4,14 @@
 #
 version: 2.1
 
+executors:
+    docker-publisher:
+      working_directory: ~/french-tarot # directory where steps will run
+      environment:
+        IMAGE_NAME: mchughs/french-tarot-app
+      docker:
+        - image: circleci/buildpack-deps:stretch
+
 jobs:
   build:
     docker:
@@ -26,8 +34,17 @@ jobs:
             - v1-dependencies-
 
       - run:
-          name: Build Server
-          command: clojure -A:backend
+          name: Build Uberjar
+          command: clojure -M:uberdeps
+
+      - persist_to_workspace:
+          root: ~/french-tarot
+          paths:
+              - target
+
+      # - run:
+      #     name: Run Uberjar
+      #     command: java -cp target/french-tarot.jar clojure.main -m user
 
       - save_cache:
           paths:
@@ -39,13 +56,65 @@ jobs:
           command: clojure -A:test
 
       - store_artifacts:
+          path: target/french-tarot.jar
+          destination: uberjar
+
+      - store_artifacts:
           path: target/coverage
           destination: coverage
 
       - store_test_results:
           path: target/coverage
 
+  build-docker:
+    executor: docker-publisher
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - setup_remote_docker
+      - run:
+          name: Build latest Docker image
+          command: docker build . -t $IMAGE_NAME:latest
+      - run:
+          name: Build tagged Docker image
+          command: |
+            if [ "${CIRCLE_TAG}" ]; then
+                docker build . -t $IMAGE_NAME:${CIRCLE_TAG};
+            fi
+      - run:
+          name: Archive Docker image
+          command: docker save -o image.tar $IMAGE_NAME
+      - persist_to_workspace:
+          root: ~/french-tarot
+          paths:
+            - ./image.tar
+
+  publish-docker:
+    executor: docker-publisher
+    steps:
+      - attach_workspace:
+          at: .
+      - setup_remote_docker
+      - run:
+          name: Load archived Docker image
+          command: docker load -i image.tar
+      - run:
+          name: Publish Docker Image to Docker Hub
+          command: |
+            echo "${DOCKERHUB_PASS}" | docker login -u "${DOCKERHUB_USERNAME}" --password-stdin
+            docker push $IMAGE_NAME:latest
+            if [ "${CIRCLE_TAG}" ]; then
+                docker push $IMAGE_NAME:${CIRCLE_TAG};
+            fi
+
 workflows:
   build:
     jobs:
       - build
+      - build-docker:
+          requires:
+            - build
+      - publish-docker:
+          requires:
+            - build-docker
