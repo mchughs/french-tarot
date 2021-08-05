@@ -13,7 +13,33 @@ executors:
         - image: circleci/buildpack-deps:stretch
 
 jobs:
-  build:
+  build-js-css:
+    docker:
+      - image: theasp/clojurescript-nodejs:shadow-cljs-alpine
+    
+    working_directory: ~/french-tarot
+
+    steps:
+    - checkout
+
+    - run:
+        name: Build JS and CSS
+        command: npm install && npm run shadow:release && npm run postcss:release
+
+    - persist_to_workspace:
+          root: ~/french-tarot
+          paths:
+              - resources/public/*
+
+    - store_artifacts:
+        path: resources/public/js/compiled/app.js
+        destination: js
+
+    - store_artifacts:
+        path: resources/public/css
+        destination: css
+
+  build-jar:
     docker:
       - image: circleci/clojure:tools-deps-1.10.3.822
 
@@ -25,6 +51,10 @@ jobs:
 
     steps:
       - checkout
+
+      # Grab the compiled files from the previous build step
+      - attach_workspace:
+          at: ./
 
       # Download and cache dependencies
       - restore_cache:
@@ -41,10 +71,6 @@ jobs:
           root: ~/french-tarot
           paths:
               - target
-
-      # - run:
-      #     name: Run Uberjar
-      #     command: java -cp target/french-tarot.jar clojure.main -m user
 
       - save_cache:
           paths:
@@ -111,10 +137,13 @@ jobs:
 workflows:
   build:
     jobs:
-      - build
+      - build-js-css
+      - build-jar:
+          requires:
+            - build-js-css
       - build-docker:
           requires:
-            - build
+            - build-jar
       - publish-docker:
           requires:
             - build-docker

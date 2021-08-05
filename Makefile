@@ -1,8 +1,8 @@
 frontend:
 	clj -A:frontend
 
-backend:
-	clj -A:backend -A:nREPL
+backend-dev:
+	RESOURCE_PATH=http://localhost:5444 clj -A:backend -A:nREPL 
 
 test-clj:
 	clj -A:test
