@@ -45,10 +45,7 @@
             [:div.mt-3.text-center.sm:mt-5
              [:> (.-Title Dialog)
               {:as "h3" :class "text-lg leading-6 font-medium text-gray-900"}
-              "Choose a Username"]
-             [:div.mt-2
-              [:p.text-sm.text-gray-500
-               "Username should be x y z"]]]]
+              "Choose a Username"]]]
            [:div.mt-5.sm:mt-6
             [:input.w-full {:type "text" :on-change #(reset! username (.. % -target -value))}]]
            [:div.mt-5.sm:mt-6

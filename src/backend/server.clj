@@ -41,7 +41,7 @@
 (def app
   (-> routes
       ring.middleware.keyword-params/wrap-keyword-params
-      ring.middleware.params/wrap-params
+      ring.middleware.params/wrap-params      
       ring.middleware.anti-forgery/wrap-anti-forgery
       ring.middleware.session/wrap-session
       (ring.middleware.resource/wrap-resource "public")))

@@ -5,7 +5,8 @@
 (rf/reg-fx
  ::set-uid
  (fn [uid]
-   (rc/set! :sente-user-id uid)))
+   (rc/set! :sente-user-id uid {:max-age (* 60 60 24 365)
+                                :secure? true})))
 
 (rf/reg-cofx
  ::uid
@@ -17,7 +18,8 @@
 (rf/reg-fx
  ::set-username
  (fn [username]
-   (rc/set! :sente-username username)))
+   (rc/set! :sente-username username {:max-age (* 60 60 24 365)
+                                      :secure? true})))
 
 (rf/reg-cofx
  ::username

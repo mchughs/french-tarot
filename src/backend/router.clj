@@ -48,7 +48,7 @@
 (defmethod event-msg-handler :room/join
   [{f :?reply-fn ?data :?data uid :uid}]
   (let [{rid :rid} ?data]
-    (when f
+    (when f      
       (if (room/can-join? rid uid)
         (do
           (room/add-player! rid uid) ;; idempotent operation.
@@ -238,10 +238,11 @@
 
 (defmethod event-msg-handler :chsk/uidport-open
   [{uid :uid}]
-  (let [user (user/create uid)]
-    (db/insert! uid user)
-    (broadcast! [:frontend.controllers.user/update (user/get-user uid)]
-                [uid])))
+  (when-not (user/exists? uid) ;; if the user already exists in the db, we're done.
+    (let [user (user/create uid)]
+      (db/insert! uid user)
+      (broadcast! [:frontend.controllers.user/update (user/get-user uid)]
+                  [uid]))))
 
 (defmethod event-msg-handler :user/submit
   [{f :?reply-fn ?data :?data uid :uid}]

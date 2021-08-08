@@ -13,6 +13,14 @@
            :where [[user :user/id uid]]}
          uid))
 
+(defn exists?
+  "Returns the true if a user is found associated with uid."
+  [uid]
+  (not (nil? (db/q1 '{:find (pull user [*])
+                      :in [uid]
+                      :where [[user :user/id uid]]}
+                    uid))))
+
 (defn get-username
   [uid]
   (db/q1 '{:find username
@@ -44,3 +52,10 @@
 
 (defn leave-room! [uid rid]
   (db/run-fx! ::leave-room uid rid))
+
+(defn clear-users! []
+  (let [uids (db/q '{:find [e]
+                     :where [[e :user/id]]})]
+    (doseq [[uid] uids]
+      (db/run-fx! ::clean uid))))
+

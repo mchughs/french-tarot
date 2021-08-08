@@ -93,6 +93,15 @@
                         [[:crux.tx/put (-> room
                                            (assoc :room/status :closed)
                                            (assoc :room/game gid))]]))}]
+     
+     [:crux.tx/put
+      {:crux.db/id :backend.models.user/clean
+       :crux.db/fn '(fn [ctx uid]
+                      (let [db (crux.api/db ctx)
+                            user (crux.api/entity db uid)]                        
+                        [[:crux.tx/put (-> user
+                                           (dissoc :user/room)
+                                           (assoc :user/host? false))]]))}]
 
      [:crux.tx/put
       {:crux.db/id :backend.models.user/join-room
@@ -190,6 +199,24 @@
   (crux/submit-tx
    node
    [[:crux.tx/delete id]]))
+
+(defn drop-data!
+  "For dev purposes only. Drops all non-user data from the db."
+  []
+  (let [rooms (q '{:find [e]
+                   :where [[e :room/id]]})
+        games (q '{:find [e]
+                   :where [[e :game/id]]})
+        players (q '{:find [e]
+                     :where [[e :player/id]]})
+        rounds (q '{:find [e]
+                    :where [[e :round/id]]})
+        logs (q '{:find [e]
+                  :where [[e :log/id]]})
+        ids (flatten (concat rooms games players rounds logs))]    
+    (crux/submit-tx
+     node
+     (mapv (fn [id] [:crux.tx/delete id]) ids))))
 
 (defn exists?
   "Checks if a given entity exists in the DB."
