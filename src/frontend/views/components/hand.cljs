@@ -10,9 +10,10 @@
   (r/with-let [hand (rf/subscribe [::players/hand])]
     (when @hand
       [:ul.flex.flex-row.max-w-screen-lg.w-full.flex-wrap
-       (->> @hand
+       {:class (str "cards-" (count @hand))}
+       (->> @hand            
             round/sort-cards
             (map (fn [card]
                    ^{:key (gensym)}
-                   [card/component card]))
+                   [card/component card "hand-card"]))
             doall)])))

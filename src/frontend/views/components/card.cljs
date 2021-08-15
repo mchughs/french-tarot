@@ -8,18 +8,18 @@
    [reagent.core :as r]))
 
 (defn back []
-  [:li
-   [:button
-    [:img {:src (fmt/fmt "http://localhost:5444/assets/images/cards_new/cardback_1.jpg")
-           :title "back"}]]])
+  [:div.card   
+   [:img {:src (fmt/fmt "http://localhost:5444/assets/images/cards_new/cardback_1.jpg")
+          :title "back"}]])
 
-(defn component [card]
+(defn component [card card-class]
   (r/with-let [phase (rf/subscribe [::log/phase])
                user-turn? (rf/subscribe [::log/user-turn?])
                init-taker-pile (rf/subscribe [::card/init-taker-pile])
                taker? (rf/subscribe [::log/taker?])]
-    [:li
-     [:button {:class (when (contains? @init-taker-pile card) "blue")
+    [:li.card {:class (str (or card-class "play-area-card") " "
+                           (when (contains? @init-taker-pile card)
+                             "set-aside"))
                :disabled (and (<= 6 (count @init-taker-pile))
                               (not (contains? @init-taker-pile card)))
                :on-click (cond (and (= :dog-construction @phase)
@@ -37,6 +37,6 @@
 
                                :else
                                #(js/console.log "TODO???"))}
-      [:img {:src (fmt/fmt "http://localhost:5444/assets/images/cards_new/%s.jpg"
-                           (s/replace (fmt/card->name card) #"\s" "_"))
-             :title (fmt/card->name card)}]]]))
+     [:img {:src (fmt/fmt "http://localhost:5444/assets/images/cards_new/%s.jpg"
+                          (s/replace (fmt/card->name card) #"\s" "_"))
+            :title (fmt/card->name card)}]]))

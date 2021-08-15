@@ -26,16 +26,21 @@
      [:div {:class "relative px-6 w-full
                     bg-gradient-to-tr from-green-900 via-green-700 to-green-900"
             :style {:height "800px"}}
-      [:div {:class "absolute right-0 top-1/2"}
+      [:div {:class "absolute left-0 top-1/2
+                     transform -translate-x-1/2 -translate-y-1/2"}
        [nameplate/component :right]]
-      [:div {:class "absolute right-1/2 top-0"}
+      [:div {:class "absolute left-1/2 top-0
+                     transform -translate-x-1/2 -translate-y-1/2"}
        [nameplate/component :top]]
-      [:div {:class "absolute right-full top-1/2"}
+      [:div {:class "absolute left-full top-1/2
+                     transform -translate-x-1/2 -translate-y-1/2"}
        [nameplate/component :left]]
-      [:div {:class "absolute right-1/2 top-full"}
+      [:div {:class "absolute left-1/2 top-full
+                     transform -translate-x-1/2 -translate-y-1/2"}
        [nameplate/component :bottom]
        [hand/component]]
-      [:div {:class "absolute right-1/2 top-1/2"}
+      [:div {:class "absolute left-1/2 top-1/2
+                     transform -translate-x-1/2 -translate-y-1/2"}
        "Center"
        (case @phase
          :bidding [phase.bidding/component]

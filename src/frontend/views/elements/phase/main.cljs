@@ -8,22 +8,27 @@
 (defn component []
   (r/with-let [board (rf/subscribe [::log/board])]
     (let [{:keys [right top left bottom]} @board]
-      [:div {:class "relative"
-             :style {:width "300px"
-                     :height "300px"}}
-       [:div {:class "absolute right-0 top-1/2"}
+      [:div.play-area
+       {:class "relative"
+        :style {:width "300px"
+                :height "300px"}}
+       [:div {:class "absolute left-0 top-1/2
+                      transform -translate-x-1/2 -translate-y-1/2"}
         (if right
           [card-comp/component right]
           [card-comp/back])]
-       [:div {:class "absolute right-1/2 top-0"}
+       [:div {:class "absolute left-1/2 top-0
+                      transform -translate-x-1/2 -translate-y-1/2"}
         (if top
           [card-comp/component top]
           [card-comp/back])]
-       [:div {:class "absolute right-full top-1/2"}
+       [:div {:class "absolute left-full top-1/2
+                      transform -translate-x-1/2 -translate-y-1/2"}
         (if left
           [card-comp/component left]
           [card-comp/back])]
-       [:div {:class "absolute right-1/2 top-full"}
+       [:div {:class "absolute left-1/2 top-full
+                      transform -translate-x-1/2 -translate-y-1/2"}
         (if bottom
           [card-comp/component bottom]
           [card-comp/back])]])))

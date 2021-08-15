@@ -5,6 +5,7 @@
     "postcss:build": "cross-env TAILWIND_MODE=build postcss ./resources/public/css/style.css -o ./resources/public/css/compiled/tailwind.css --verbose",
     "postcss:watch": "cross-env TAILWIND_MODE=watch postcss ./resources/public/css/style.css -o ./resources/public/css/compiled/tailwind.css --verbose -w",
     "postcss:release": "cross-env NODE_ENV=production postcss ./resources/public/css/style.css -o ./resources/public/css/compiled/tailwind.css --verbose",
+    "scss": "node-sass ./resources/public/css/card.scss ./resources/public/css/compiled/card.css",
     "dev": "run-p -l *:watch",
     "release": "run-s *:release"
   },
@@ -23,6 +24,7 @@
     "create-react-class": "15.7.0",
     "cross-env": "^7.0.3",
     "highlight.js": "11.0.1",
+    "node-sass": "^6.0.1",
     "react": "^17.0.1",
     "react-dom": "17.0.1"
   }

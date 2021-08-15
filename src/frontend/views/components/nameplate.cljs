@@ -13,8 +13,8 @@
     (let [{player-name :player/name
            player-score :player/score
            player-position :player/position} @player]
-      [:div {:class (when @player-turn? "border-8 border-indigo-600")}
-       [:div (name position-key)]
+      [:div {:class (str "bg-gray-300 p-2 "
+                         (when @player-turn? "border-8 border-indigo-600"))}
        [:div player-name (when (= @dealer-turn
                                   player-position)
                            " (dealer)")]
