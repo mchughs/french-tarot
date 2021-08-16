@@ -62,3 +62,18 @@
  (fn [db [_ position-key]]
    (= (get-in db [:players position-key :player/position])
       (get-in db [:curr/log :log/player-turn]))))
+
+(rf/reg-sub
+ ::taker-id
+ (fn [db _]
+   (get-in db [:curr/log :log/taker :uid])))
+
+(rf/reg-sub
+ ::taker-pile
+ (fn [db _]
+   (get-in db [:curr/log :log/taker :pile])))
+
+(rf/reg-sub
+ ::defenders-pile
+ (fn [db _]
+   (get-in db [:curr/log :log/defenders :pile])))
