@@ -48,7 +48,7 @@
 (defmethod event-msg-handler :room/join
   [{f :?reply-fn ?data :?data uid :uid}]
   (let [{rid :rid} ?data]
-    (when f      
+    (when f
       (if (room/can-join? rid uid)
         (do
           (room/add-player! rid uid) ;; idempotent operation.
@@ -62,7 +62,7 @@
   (let [{rid :rid} ?data]
     (when f
       (if (room/can-leave? rid uid)
-        (let [leaving-players (room/remove-player! rid uid)]          
+        (let [leaving-players (room/remove-player! rid uid)]
           (doseq [user-id leaving-players]
             (user/leave-room! user-id rid))
           (broadcast! [:frontend.controllers.room/exit
@@ -76,7 +76,7 @@
   [{f :?reply-fn data :?data uid :uid}]
   (let [{rid :rid} data]
     (when f
-     (if (game/can-start? rid uid)
+      (if (game/can-start? rid uid)
         (let [gid (game/create! rid)
               uids (players/create! rid gid)]
           (game/start! rid gid)
@@ -99,9 +99,9 @@
           (deck/deal! gid round-id)
           (game/begin-round! gid)
           (broadcast! [:frontend.controllers.round/update (round/get-round round-id)]
-                      uids)          
+                      uids)
           (broadcast! [:frontend.controllers.game/update (game/get-game gid)]
-                      uids)          
+                      uids)
           (broadcast! [:frontend.controllers.log/update (logs/get-log log-id)]
                       uids)
           (doseq [uid uids]
@@ -118,7 +118,7 @@
         (let [uids (players/log->players log-id)
               new-log (logs/place-bid! log bid uid uids)
               new-log-id (logs/add-log! new-log log)
-              round-id (round/append-log! (:log/id log) new-log-id)]              
+              round-id (round/append-log! (:log/id log) new-log-id)]
           (broadcast! [:frontend.controllers.round/update (round/get-round round-id)]
                       uids)
           (broadcast! [:frontend.controllers.log/update (logs/get-log new-log-id)]
@@ -163,28 +163,42 @@
       (if (and (= :dog-construction (:log/phase old-log))
                (= uid (get-in old-log [:log/taker :uid]))
                (= 6 (count init-taker-pile)))
-          (let [uids (players/log->players log-id)
-                new-log (logs/init-dog old-log init-taker-pile)
-                new-log-id (logs/add-log! new-log old-log)
-                round-id (round/append-log! (:log/id old-log) new-log-id)]
-            (players/remove-dog-from-hand! (players/uid->pid uid) init-taker-pile)            
-            (broadcast! [:frontend.controllers.players/update (players/get-player uid)]
-                        [uid])
-            (broadcast! [:frontend.controllers.round/update (round/get-round round-id)]
-                        uids)
-            (broadcast! [:frontend.controllers.log/update (logs/get-log new-log-id)]
-                        uids)
-            (f :chsk/success))
-          (f :chsk/error)))))
+        (let [uids (players/log->players log-id)
+              new-log (logs/init-dog old-log init-taker-pile)
+              new-log-id (logs/add-log! new-log old-log)
+              round-id (round/append-log! (:log/id old-log) new-log-id)]
+          (players/remove-dog-from-hand! (players/uid->pid uid) init-taker-pile)
+          (broadcast! [:frontend.controllers.players/update (players/get-player uid)]
+                      [uid])
+          (broadcast! [:frontend.controllers.round/update (round/get-round round-id)]
+                      uids)
+          (broadcast! [:frontend.controllers.log/update (logs/get-log new-log-id)]
+                      uids)
+          (f :chsk/success))
+        (f :chsk/error)))))
+
+(defn- make-trick
+  "Includes a delay so the users can see the board for a bit before the cards are collected."
+  [old-log uids uid]
+  (Thread/sleep 3000)
+  (let [new-log (logs/make-trick old-log uid)
+        new-log-id (logs/add-log! new-log old-log)
+        round-id (round/append-log! (:log/id old-log) new-log-id)]
+    (broadcast! [:frontend.controllers.players/update (players/get-player uid)]
+                [uid])
+    (broadcast! [:frontend.controllers.log/update (logs/get-log new-log-id)]
+                uids)
+    (broadcast! [:frontend.controllers.round/update (round/get-round round-id)]
+                uids)))
 
 (defmethod event-msg-handler :card/play
   [{f :?reply-fn ?data :?data uid :uid}]
   (let [{log-id :log-id card :card} ?data
         old-log (logs/get-log log-id)]
-    (when f      
+    (when f
       (if (and (= :main (:log/phase old-log))
                (logs/user-turn? old-log uid)
-               (logs/allowed-card? old-log card uid))        
+               (logs/allowed-card? old-log card uid))
         (let [uids (players/log->players log-id)
               new-log (logs/play-card old-log card uid)
               new-log-id (logs/add-log! new-log old-log)
@@ -192,10 +206,12 @@
           (cards/remove-card-from-hand! (players/uid->pid uid) card)
           (broadcast! [:frontend.controllers.players/update (players/get-player uid)]
                       [uid])
-          (broadcast! [:frontend.controllers.round/update (round/get-round round-id)]
-                      uids)
           (broadcast! [:frontend.controllers.log/update (logs/get-log new-log-id)]
                       uids)
+          (broadcast! [:frontend.controllers.round/update (round/get-round round-id)]
+                      uids)
+          (when (= 4 (count (:log/board new-log))) ;; last-move
+            (make-trick new-log uids uid))
           (f :chsk/success))
         (f :chsk/error)))))
 
@@ -208,7 +224,7 @@
         (let [uids (players/log->players log-id)
               new-log (round/score old-log)
               new-log-id (logs/add-log! new-log old-log)
-              round-id (round/append-log! (:log/id old-log) new-log-id)]          
+              round-id (round/append-log! (:log/id old-log) new-log-id)]
           (round/next-dealer! round-id)
           (players/append-scores! new-log uids)
           (game/end-round! gid)
@@ -220,7 +236,7 @@
           (broadcast! [:frontend.controllers.log/update (logs/get-log new-log-id)]
                       uids)
           (broadcast! [:frontend.controllers.game/update (game/get-game gid)]
-                      uids)          
+                      uids)
           (f :chsk/success))
         (f :chsk/error)))))
 
@@ -233,7 +249,7 @@
   [{f :?reply-fn uid :uid}]
   (when f
     (f (user/get-user uid))))
- 
+
 ;; TODO Other handlers for default sente events...
 
 (defmethod event-msg-handler :chsk/uidport-open
@@ -254,7 +270,7 @@
 
         (user/name-taken? username)
         (f :chsk/error)
-        
+
         :else
         (do
           (user/give-name! uid username)

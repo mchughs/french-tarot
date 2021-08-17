@@ -181,22 +181,24 @@
         new-board (conj board {:board/play-order (count board)
                                :board/uid uid
                                :board/position (:player/position player)
-                               :board/card card})
-        last-move? (= 4 (count new-board))]
-    (if-not last-move?      
-      (-> log
-          (assoc :log/board new-board)
-          (update :log/player-turn #(mod (inc %) 4)))
-      (let [holder (cards/top-card new-board)
-            holder-team (if (= (get-in log [:log/taker :uid])
-                               (:board/uid holder))
-                          :log/taker
-                          :log/defenders)]
-        (-> log
-            (assoc :log/board [])
-            (update-in [holder-team :pile] concat (map :board/card new-board))
-            (assoc :log/player-turn (:board/position holder))
-            (assoc :log/phase (if (= 1 (count (:player/hand player))) ;; last trick
+                               :board/card card})]
+    (-> log
+        (assoc :log/board new-board)
+        (update :log/player-turn #(mod (inc %) 4)))))
+
+(defn make-trick
+  [log uid]
+  (let [board (:log/board log)
+        player (players/get-player uid)
+        holder (cards/top-card board)
+        holder-team (if (= (get-in log [:log/taker :uid])
+                           (:board/uid holder))
+                      :log/taker
+                      :log/defenders)]
+    (-> log
+        (assoc :log/board [])
+        (update-in [holder-team :pile] concat (map :board/card board))
+        (assoc :log/player-turn (:board/position holder))
+        (assoc :log/phase (if (= 1 (count (:player/hand player))) ;; last trick
                             :scoring
-                            :main))))
-    )))
+                            :main)))))

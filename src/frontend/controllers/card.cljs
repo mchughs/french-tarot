@@ -33,7 +33,7 @@
  (fn [payload]
    ((:send-fn ws/client-chsk)
     [:card/play payload]
-    1000
+    4000
     (fn [reply]
       (if (sente/cb-success? reply)
         (js/console.log "Success, card/play.")
