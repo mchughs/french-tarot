@@ -77,3 +77,11 @@
  ::defenders-pile
  (fn [db _]
    (get-in db [:curr/log :log/defenders :pile])))
+
+(rf/reg-sub
+ ::taker?
+ (fn [db _]
+   (= (get db :user/id)
+      (get-in db [:curr/log :log/taker :uid]))))
+
+

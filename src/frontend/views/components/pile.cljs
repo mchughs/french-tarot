@@ -1,7 +1,9 @@
 (ns frontend.views.components.pile
   (:require
    [frontend.views.components.card :as card]
+   [frontend.controllers.players :as players]
    [reagent.core :as r]
+   [re-frame.core :as rf]
    ["react" :refer (Fragment)]
    ["@headlessui/react" :refer (Dialog Transition)]))
 
@@ -53,20 +55,19 @@
               "Pile"]]]
            [:div.mt-5.sm:mt-6.grid.justify-items-center
             [:div
-             (->> (split-tricks pile)
-                  (map (fn [tricks]
-                         ^{:key (gensym)}
-                         [:ul.flex.flex-row.max-w-screen-lg.w-full
-                          (->> tricks
-                               (map (fn [card]
-                                      ^{:key (gensym)}
-                                      [card/component card]))
-                               doall)]))
-                  doall)]]
-           [:button.basic.inline-flex.justify-center.w-full.rounded-md.border.border-transparent.shadow-sm.px-4.py-2.bg-indigo-600.text-base.font-medium.text-white.hover:bg-indigo-700.focus:outline-none.focus:ring-2.focus:ring-offset-2.focus:ring-indigo-500.sm:text-sm
-            {:type "button"
-             :on-click #(swap! open? not)}
-            "Close"]]]]]]
+             (let [trick (last (split-tricks pile))]
+               (if (= 4 (count trick)) ;; no one can see the dog TODO (for simplicity)
+                 [:ul.flex.flex-row.max-w-screen-lg.w-full
+                  (->> trick
+                       (map (fn [card]
+                              ^{:key (gensym)}
+                              [card/component card]))
+                       doall)]
+                 [:div.mb-3 "No trick to see."]))]]
+             [:button.basic.inline-flex.justify-center.w-full.rounded-md.border.border-transparent.shadow-sm.px-4.py-2.bg-indigo-600.text-base.font-medium.text-white.hover:bg-indigo-700.focus:outline-none.focus:ring-2.focus:ring-offset-2.focus:ring-indigo-500.sm:text-sm
+              {:type "button"
+               :on-click #(swap! open? not)}
+              "Close"]]]]]]
 
-      [:button {:on-click #(swap! open? not)}
-       [:span "Inspect Pile: (" (count pile) ")"]])))
+        [:button {:on-click #(swap! open? not)}
+         [:span "Inspect Pile: (" (count pile) ")"]])))
