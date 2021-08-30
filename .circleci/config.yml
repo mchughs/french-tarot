@@ -32,8 +32,8 @@ jobs:
 
 
     - run:
-        name: Build JS and CSS
-        command: npm install && npm run shadow:release && npm run scss && npm run postcss:release
+        name: Build NPm
+        command: npm install
 
     - run:
         name: bar
@@ -42,6 +42,11 @@ jobs:
     - run:
         name: baz
         command: cat node_modules/@material-ui/core/package.json
+
+
+    - run:
+        name: Build JS and CSS
+        command: npm install && npm run shadow:release && npm run scss && npm run postcss:release
 
     - persist_to_workspace:
           root: ~/french-tarot
