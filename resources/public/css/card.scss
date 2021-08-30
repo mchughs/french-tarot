@@ -64,8 +64,14 @@
     width: 140px;
     height: 264px;    
   }
-  .card:not(.back) {
+  .card:not(.placeholder) {
     animation-name: fade-and-slide;
     animation-duration: 0.75s;
   }
+}
+
+div.placeholder {
+  border-style: dotted;
+  border-width: 5px;
+  opacity: 0.5;
 }

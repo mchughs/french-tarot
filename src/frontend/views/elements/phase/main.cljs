@@ -17,22 +17,22 @@
                  transform -translate-x-1/2 -translate-y-1/2"}
         (if right
           [card-comp/component right]
-          [card-comp/back])]
+          [card-comp/place-holder])]
        [:div
         {:class "absolute left-1/2 top-0
                  transform -translate-x-1/2 -translate-y-1/2"}
         (if top
           [card-comp/component top]
-          [card-comp/back])]
+          [card-comp/place-holder])]
        [:div
         {:class "absolute left-full top-1/2
                  transform -translate-x-1/2 -translate-y-1/2"}
         (if left
           [card-comp/component left]
-          [card-comp/back])]
+          [card-comp/place-holder])]
        [:div
         {:class "absolute left-1/2 top-full
                  transform -translate-x-1/2 -translate-y-1/2"}
         (if bottom
           [card-comp/component bottom]
-          [card-comp/back])]])))
+          [card-comp/place-holder])]])))

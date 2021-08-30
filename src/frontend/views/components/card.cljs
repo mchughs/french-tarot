@@ -7,10 +7,8 @@
    [re-frame.core :as rf]
    [reagent.core :as r]))
 
-(defn back []
-  [:div.card.back   
-   [:img {:src (fmt/fmt "/assets/images/cards_new/cardback_1.jpg")
-          :title "back"}]])
+(defn place-holder []
+  [:div.card.placeholder])
 
 (defn component [card card-class]
   (r/with-let [phase (rf/subscribe [::log/phase])
