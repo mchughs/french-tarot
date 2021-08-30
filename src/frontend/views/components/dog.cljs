@@ -9,7 +9,7 @@
 (defn component []
   (r/with-let [dog (rf/subscribe [::log/dog])]
     (when @dog
-      [:ul.flex.flex-row.max-w-screen-lg.w-full.flex-wrap
+      [:ul.grid.grid-flow-col.grid-cols-3.grid-rows-2.gap-4
        (->> @dog
             round/sort-cards
             (map (fn [card]

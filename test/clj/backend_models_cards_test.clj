@@ -6,22 +6,22 @@
    [players :as players.data]))
 
 (def board-1
- #{{:board/card cards.data/ace-of-spades
-    :board/play-order 0
-    :board/uid (:id players.data/player-one)
-    :board/position (:position players.data/player-one)}
-   {:board/card cards.data/ten-of-spades
-    :board/play-order 1
-    :board/uid (:id players.data/player-two)
-    :board/position (:position players.data/player-two)}
-   {:board/card cards.data/jack-of-spades
-    :board/play-order 2
-    :board/uid (:id players.data/player-three)
-    :board/position (:position players.data/player-three)}
-   {:board/card cards.data/king-of-spades
-    :board/play-order 3
-    :board/uid (:id players.data/player-four)
-    :board/position (:position players.data/player-four)}})
+  #{{:board/card cards.data/ace-of-spades
+     :board/play-order 0
+     :board/uid (:id players.data/player-one)
+     :board/position (:position players.data/player-one)}
+    {:board/card cards.data/ten-of-spades
+     :board/play-order 1
+     :board/uid (:id players.data/player-two)
+     :board/position (:position players.data/player-two)}
+    {:board/card cards.data/jack-of-spades
+     :board/play-order 2
+     :board/uid (:id players.data/player-three)
+     :board/position (:position players.data/player-three)}
+    {:board/card cards.data/king-of-spades
+     :board/play-order 3
+     :board/uid (:id players.data/player-four)
+     :board/position (:position players.data/player-four)}})
 
 (def board-2
   #{{:board/card cards.data/king-of-spades
@@ -114,7 +114,7 @@
      :board/position (:position players.data/player-four)}})
 
 (deftest find-holder
-  (testing "Within the same suit, the king is the strongest."    
+  (testing "Within the same suit, the king is the strongest."
     (is {:board/card cards.data/king-of-spades
          :board/uid (:id players.data/player-four)
          :board/position (:position players.data/player-four)

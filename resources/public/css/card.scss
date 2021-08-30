@@ -6,7 +6,7 @@
     }
   }
 
-@for $i from 1 through 18 {
+@for $i from 1 through 24 {
   .cards-#{$i} {
       position: absolute;
       height: 100%;
@@ -37,9 +37,25 @@
 }
 
 .set-aside {
-  box-shadow: 0 0 5px #ff0000;
-  margin: -15px 1px 3px 0px;
+  box-shadow: 0 0 5px #ff0000;  
   border: 1px solid #ff0000;
+  border-radius: 15px;
+  border-width: medium;
+  &:not(.dog-cards) {
+    margin: -15px 1px 3px 0px;
+  }
+}
+
+@keyframes fade-and-slide {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0%);
+    opacity: 1;
+  }
 }
 
 .play-area {
@@ -48,5 +64,8 @@
     width: 140px;
     height: 264px;    
   }
+  .card:not(.back) {
+    animation-name: fade-and-slide;
+    animation-duration: 0.75s;
+  }
 }
-

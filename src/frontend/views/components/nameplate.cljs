@@ -13,7 +13,7 @@
                player-turn? (rf/subscribe [::players/player-turn? position-key])
                dealer-turn (rf/subscribe [::round/dealer-turn])
                taker-pile (rf/subscribe [::players/taker-pile])
-               defenders-pile (rf/subscribe [::players/defenders-pile])]
+               defenders-pile (rf/subscribe [::players/defenders-pile])]              
     (let [{player-name :player/name
            player-score :player/score
            player-position :player/position
@@ -21,10 +21,13 @@
           taker? (= @taker-id user-id)
           dealer? (= @dealer-turn player-position)
           pile (if taker? taker-pile defenders-pile)]
-      [:div {:class (str "bg-gray-300 p-2 "
-                         (when @player-turn? "border-8 border-indigo-600"))}
-       [:div player-name
-        (when dealer? " (dealer)")
-        (when taker? " (taker)")]
-       [:div "Score: " player-score]
+      [:div {:class (str "p-2 flex flex-row justify-around w-max rounded"
+                         (when @player-turn? " border-8 border-yellow")
+                         (if taker?
+                           " bg-tertiary "
+                           " bg-secondary-500 "))}
+       [:div
+        [:div.pt-1 player-name
+         (when dealer? " (dealer)")]
+        [:div.pt-1 "Score: " player-score]]
        [pile/component @pile]])))

@@ -144,9 +144,11 @@
               new-log-id (logs/add-log! new-log old-log)
               round-id (round/append-log! (:log/id old-log) new-log-id)]
           (when-let [dog (:log/dog new-log)]
-            (players/add-dog-to-hand! (players/uid->pid uid) dog)
-            (broadcast! [:frontend.controllers.players/update (players/get-player uid)]
-                        [uid]))
+            (let [taker (get-in old-log [:log/taker :uid])]
+              (players/add-dog-to-hand! (players/uid->pid taker)
+                                        dog)
+              (broadcast! [:frontend.controllers.players/update (players/get-player taker)]
+                          [taker])))
           (broadcast! [:frontend.controllers.round/update (round/get-round round-id)]
                       uids)
           (broadcast! [:frontend.controllers.log/update (logs/get-log new-log-id)]
@@ -203,7 +205,7 @@
               new-log (logs/play-card old-log card uid)
               new-log-id (logs/add-log! new-log old-log)
               round-id (round/append-log! (:log/id old-log) new-log-id)]
-          (cards/remove-card-from-hand! (players/uid->pid uid) card)
+          (cards/remove-card-from-hand! (players/uid->pid uid) card) ;; TODO don't let next player play if it's the last play :)
           (broadcast! [:frontend.controllers.players/update (players/get-player uid)]
                       [uid])
           (broadcast! [:frontend.controllers.log/update (logs/get-log new-log-id)]
@@ -211,7 +213,11 @@
           (broadcast! [:frontend.controllers.round/update (round/get-round round-id)]
                       uids)
           (when (= 4 (count (:log/board new-log))) ;; last-move
-            (make-trick new-log uids uid))
+            (broadcast! [:frontend.controllers.players/add-block]
+                        uids)
+            (make-trick new-log uids uid)
+            (broadcast! [:frontend.controllers.players/remove-block]
+                        uids))
           (f :chsk/success))
         (f :chsk/error)))))
 
@@ -231,6 +237,8 @@
           (doseq [uid uids]
             (broadcast! [:frontend.controllers.players/update (players/get-player uid)]
                         [uid]))
+          (broadcast! [:frontend.controllers.players/fetch (players/get-public-player-data gid)]
+                      uids)
           (broadcast! [:frontend.controllers.round/update (round/get-round round-id)]
                       uids)
           (broadcast! [:frontend.controllers.log/update (logs/get-log new-log-id)]

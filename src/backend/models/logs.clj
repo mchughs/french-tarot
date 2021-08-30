@@ -3,7 +3,8 @@
    [backend.db :as db]
    [backend.models.cards :as cards]
    [backend.models.players :as players]
-   [clj-uuid :as uuid]))
+   [clj-uuid :as uuid]
+   [utils :as utils]))
 
 (defn init-log! []
   (let [log-id (uuid/v4)]
@@ -186,19 +187,56 @@
         (assoc :log/board new-board)
         (update :log/player-turn #(mod (inc %) 4)))))
 
+(defn- insert-iou [cards]
+  (-> cards
+      (disj {:type :excuse
+             :points 4.5
+             :ouder? true})
+      ;; TODO technically with a schlem there could not be any white cards to donate.
+      (conj {:type :iou
+             :points 0.5
+             :ouder? false})))
+
+(defn get-pile
+  "The pile would ordinarily just be a set of all the cards on the board, however the excuse complicates things.
+   Helps to notice that whoever plays the excuse cannot be the holder."
+  [board taker-id holder-id]
+  (let [cards (set (map :board/card board))
+        excuse-player (->> board
+                           (utils/find-first #(= :excuse (:type (:board/card %))))
+                           :board/uid)]    
+    (cond
+      ;; no excuse played
+      (nil? excuse-player)
+      cards
+
+      ;; taker plays excuse.
+      (= taker-id excuse-player)
+      (insert-iou cards)
+      
+      ;; defender plays excuse and taker holds
+      (and (not= taker-id excuse-player)
+           (= taker-id holder-id))
+      (insert-iou cards)
+
+      :else
+      cards)))
+
 (defn make-trick
   [log uid]
   (let [board (:log/board log)
         player (players/get-player uid)
         holder (cards/top-card board)
-        holder-team (if (= (get-in log [:log/taker :uid])
-                           (:board/uid holder))
+        taker-id (get-in log [:log/taker :uid])
+        holder-id (:board/uid holder)
+        holder-team (if (= taker-id holder-id)
                       :log/taker
-                      :log/defenders)]
+                      :log/defenders)
+        pile (get-pile board taker-id holder-id)]
     (-> log
         (assoc :log/board [])
-        (update-in [holder-team :pile] concat (map :board/card board))
+        (update-in [holder-team :pile] concat pile)
         (assoc :log/player-turn (:board/position holder))
-        (assoc :log/phase (if (= 1 (count (:player/hand player))) ;; last trick
+        (assoc :log/phase (if (zero? (count (:player/hand player))) ;; last trick
                             :scoring
                             :main)))))

@@ -7,7 +7,7 @@
   [:li.py-4.flex
    [:div.ml-3
     [:p.text-sm.font-medium.text-gray-900
-     {:class (when you? "text-purple-700 text-opacity-100")}
+     {:class (when you? "text-secondary-700 text-opacity-100")}
      name]
     (when host?
       [:p.text-sm.text-gray-500

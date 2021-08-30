@@ -42,5 +42,7 @@
 (rf/reg-event-fx
  ::play
  (fn [{db :db} [_ card]]
-   {:card/play {:log-id (get-in db [:curr/log :log/id])
-                :card card}}))
+   (if (:block db)
+     (js/alert (str "Oops, you must wait til the trick completes to play a card."))
+     {:card/play {:log-id (get-in db [:curr/log :log/id])
+                  :card card}})))

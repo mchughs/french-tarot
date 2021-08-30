@@ -26,5 +26,3 @@
         {open? :ever-opened?} new-state]
     (when open?
       (rf/dispatch [::ws.events/open]))))
-
-;; TODO Other handlers for default sente events...

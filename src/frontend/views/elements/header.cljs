@@ -18,7 +18,7 @@
       [:h1.text-lg.font-bold.text-gray-900 "French Tarot"]
       [:h3.font-medium.text-gray-500.flex.content-center
        "/ʒø dø taʁo/"
-       [:audio#audio-example [:source {:src "http://localhost:5444/assets/audio/jeu_de_tarot.mp3" :type "audio/mpeg"}]]
+       [:audio#audio-example [:source {:src "/assets/audio/jeu_de_tarot.mp3" :type "audio/mpeg"}]]
        [:button.basic.px-2 {:on-click #(.play (.getElementById js/document "audio-example"))}
         [:img {:src "https://img.icons8.com/material-rounded/15/000000/speaker.png"}]]]
       [:h4.text-base.font-small.text-gray-600.pt-2 "Username: "
@@ -26,7 +26,7 @@
       [:div.mt-3.sm:mt-4
        [:div.sm:hidden
         [:label.sr-only {:for "current-tab"} "Select a tab"]
-        [:select#current-tab.block.w-full.pl-3.pr-10.py-2.text-base.border-gray-300.focus:outline-none.focus:ring-indigo-500.focus:border-indigo-500.sm:text-sm.rounded-md
+        [:select#current-tab.block.w-full.pl-3.pr-10.py-2.text-base.border-gray-300.focus:outline-none.focus:ring-accent-500.focus:border-accent-500.sm:text-sm.rounded-md
          {:name "current-tab"
           :value selected-tab
           :on-change (fn [e] ;; annoyingly the keyword in value loses it's ns on click so we have to add it back in here.
@@ -49,7 +49,7 @@
                        ^{:key (gensym)}
                        [:a.basic.whitespace-nowrap.pb-4.px-1.border-b-2.font-medium.text-sm
                         {:class (if (= selected-tab name)
-                                  "border-indigo-500 text-indigo-600"
+                                  "border-accent-500 text-accent-600"
                                   "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300")
                          :href href
                          :aria-current (when (= selected-tab name) "page")}

@@ -8,6 +8,16 @@
  (fn [db [_ player]]
    (assoc db :player player)))
 
+(rf/reg-event-db
+ ::add-block ;; Places a block on players from being able to play cards while the backend is applying a 'wait'.
+ (fn [db _]
+   (assoc db :block true)))
+
+(rf/reg-event-db
+ ::remove-block
+ (fn [db _]
+   (dissoc db :block)))
+
 (rf/reg-sub
  ::order
  (fn [db _]
@@ -31,7 +41,6 @@
    (get player :player/score)))
 
 ;; Other players
-;; TODO fix it
 (rf/reg-event-db
  ::fetch
  (fn [db [_ players]]

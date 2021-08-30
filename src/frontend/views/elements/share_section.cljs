@@ -8,7 +8,7 @@
        [:div.font-normal.text-md.justify-self-center "Invite a friend by copying the link below"]
        [:button.basic.flex.flex-row.border-4.justify-self-center.relative.mt-2
         {:title (if @copied? "Copied!" "Click to Copy")
-         :class (if @copied? "border-green-600" "border-indigo-600")
+         :class (if @copied? "border-secondary-600" "border-blue-600")
          :on-click
          #(-> js/navigator
               .-clipboard

@@ -49,7 +49,7 @@
            [:div.mt-5.sm:mt-6
             [:input.w-full {:type "text" :on-change #(reset! username (.. % -target -value))}]]
            [:div.mt-5.sm:mt-6
-            [:button.basic.inline-flex.justify-center.w-full.rounded-md.border.border-transparent.shadow-sm.px-4.py-2.bg-indigo-600.text-base.font-medium.text-white.hover:bg-indigo-700.focus:outline-none.focus:ring-2.focus:ring-offset-2.focus:ring-indigo-500.sm:text-sm
+            [:button.basic.inline-flex.justify-center.w-full.rounded-md.border.border-transparent.shadow-sm.px-4.py-2.bg-accent-600.text-base.font-medium.text-white.hover:bg-accent-700.focus:outline-none.focus:ring-2.focus:ring-offset-2.focus:ring-accent-500.sm:text-sm
              {:type "button"
               :on-click #(rf/dispatch [::user/submit-name @username])}
              "Submit"]]]]]]])))

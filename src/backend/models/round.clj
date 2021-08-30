@@ -112,10 +112,38 @@
          in-progress? ;; 4.
          )))
 
+(defn- insert-excuse [cards]
+  ;; TODO it's technically possible that they would not have a card worth 0.5 points but it's very unlikely.
+  (let [cheap-card (utils/find-first #(= 0.5 (:points %)) cards)]
+    (remove #(= cheap-card %)
+            (conj cards {:type :excuse
+                         :points 4.5
+                         :ouder? true}))))
+
+(defn- settle-up
+  "If an iou needs to be settled. Remove a card from the ower and give them their excuse."
+  [log]
+  (let [taker-iou? (contains? (set (get-in log [:log/taker :pile]))
+                              {:type :iou
+                               :points 0.5
+                               :ouder? false})
+        defenders-iou? (contains? (set (get-in log [:log/defenders :pile]))
+                                  {:type :iou
+                                   :points 0.5
+                                   :ouder? false})]    
+    (-> log
+        (update-in [:log/taker :pile]
+                   #(cond-> %
+                      defenders-iou? insert-excuse))
+        (update-in [:log/defenders :pile]
+                   #(cond-> %
+                      taker-iou? insert-excuse)))))
+
 (defn score [log]
-  (let [{taker-score :taker/score
-         defenders-score :defenders/score} (calculate-scores (:log/taker log)
-                                                             (:log/defenders log))]
+  (let [settled-log (settle-up log)
+        {taker-score :taker/score
+         defenders-score :defenders/score} (calculate-scores (:log/taker settled-log)
+                                                             (:log/defenders settled-log))]
     (-> log
         (assoc :log/phase :end)
         (assoc-in [:log/taker :score] taker-score)

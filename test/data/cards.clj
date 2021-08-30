@@ -74,3 +74,8 @@
   {:type :excuse
    :points 4.5
    :ouder? true})
+
+(def iou
+  {:type :iou
+   :points 0.5
+   :ouder? false})

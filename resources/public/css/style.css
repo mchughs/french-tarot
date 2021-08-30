@@ -7,10 +7,10 @@
 @layer base {
    /* Giving a class of basic is our opt-out mechanism. */
     a:not(.basic) {
-       @apply underline text-purple-700 italic;
+       @apply underline text-typeface-700 italic hover:text-accent-700;
     }
     button:not(.basic) {
-       @apply py-2 px-4 bg-green-500 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 focus:outline-none disabled:opacity-50 disabled:bg-green-500 w-24 min-w-min;
+       @apply py-2 px-4 bg-secondary-500 text-white font-semibold rounded-lg shadow-md hover:bg-secondary-700 focus:outline-none disabled:opacity-50 disabled:bg-secondary-500 w-24 min-w-min;
     }
     button.blue {
        @apply py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none disabled:opacity-50 disabled:bg-blue-500 w-24 min-w-min;

@@ -6,7 +6,6 @@
 .lsp/
 .clj-kondo
 .cljfmt.edn
-package-lock.json
 /node_modules
 .shadow-cljs
 /resources/public/js
