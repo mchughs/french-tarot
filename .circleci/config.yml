@@ -23,8 +23,25 @@ jobs:
     - checkout
 
     - run:
+        name: foo
+        command: cat package.json
+
+    - run:
+        name: bim
+        command: npm --version
+
+
+    - run:
         name: Build JS and CSS
-        command: npm install && npm run shadow:release && npm run scss && npm run postcss:release
+        command: npm install
+
+    - run:
+        name: bar
+        command: ls node_modules/@material-ui/core/
+
+    - run:
+        name: baz
+        command: cat node_modules/@material-ui/core/package.json
 
     - persist_to_workspace:
           root: ~/french-tarot
