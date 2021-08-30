@@ -13,5 +13,8 @@
   (db/drop-data!)
   (user/clear-users!))
 
+(defn -main [& _args]
+  (purge!))
+
 (comment
   (purge!))
