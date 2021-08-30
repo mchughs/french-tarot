@@ -33,11 +33,11 @@ jobs:
 
     - run:
         name: Build JS and CSS
-        command: npm install
+        command: npm install && npm run shadow:release && npm run scss && npm run postcss:release
 
     - run:
         name: bar
-        command: ls node_modules/@material-ui/core/
+        command: ls node_modules/@material-ui/
 
     - run:
         name: baz
