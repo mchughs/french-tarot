@@ -5,7 +5,8 @@
             backend.core
             backend.db
             backend.router
-            backend.routes.ws))
+            backend.routes.ws
+            prod-ops))
 
 (mu/on-upndown :info mu/log :before)
 
