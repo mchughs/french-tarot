@@ -1,7 +1,11 @@
+@use "sass:math";
+
 @mixin fan($count, $angle) {
     @for $i from 1 through $count {
       li:nth-child(#{$i}) {
-        transform: translate(-50%, -50%) rotate(-$angle / 2 + $angle / ($count + 1) * $i);
+        transform: translate(-50%, -50%) rotate(
+          math.div(-$angle, 2) + math.div($angle, ($count + 1)) * $i
+        );
       }
     }
   }
